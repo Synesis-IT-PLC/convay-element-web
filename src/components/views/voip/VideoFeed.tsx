@@ -8,12 +8,13 @@ Please see LICENSE files in the repository root for full details.
 */
 
 import classnames from "classnames";
-import { type MatrixCall } from "matrix-js-sdk/src/webrtc/call";
+import { CallEvent, type MatrixCall } from "matrix-js-sdk/src/webrtc/call";
 import React from "react";
 import { type CallFeed, CallFeedEvent } from "matrix-js-sdk/src/webrtc/callFeed";
 import { logger } from "matrix-js-sdk/src/logger";
 import { SDPStreamMetadataPurpose } from "matrix-js-sdk/src/webrtc/callEventTypes";
 import { MicOffSolidIcon, MicOnSolidIcon } from "@vector-im/compound-design-tokens/assets/web/icons";
+import { Clock } from "@element-hq/web-shared-components";
 
 import SettingsStore from "../../../settings/SettingsStore";
 import LegacyCallHandler from "../../../LegacyCallHandler";
@@ -42,6 +43,7 @@ interface IProps {
 interface IState {
     audioMuted: boolean;
     videoMuted: boolean;
+    callLengthSeconds: number;
 }
 
 export default class VideoFeed extends React.PureComponent<IProps, IState> {
@@ -53,16 +55,19 @@ export default class VideoFeed extends React.PureComponent<IProps, IState> {
         this.state = {
             audioMuted: this.props.feed.isAudioMuted(),
             videoMuted: this.props.feed.isVideoMuted(),
+            callLengthSeconds: 0,
         };
     }
 
     public componentDidMount(): void {
         this.updateFeed(null, this.props.feed);
         this.playMedia();
+        this.updateCallListeners(null, this.props.call);
     }
 
     public componentWillUnmount(): void {
         this.updateFeed(this.props.feed, null);
+        this.updateCallListeners(this.props.call, null);
     }
 
     public componentDidUpdate(prevProps: IProps, prevState: IState): void {
@@ -70,6 +75,9 @@ export default class VideoFeed extends React.PureComponent<IProps, IState> {
         // If the mutes state has changed, we try to playMedia()
         if (prevState.videoMuted !== this.state.videoMuted || prevProps.feed.stream !== this.props.feed.stream) {
             this.playMedia();
+        }
+        if (prevProps.call !== this.props.call) {
+            this.updateCallListeners(prevProps.call, this.props.call);
         }
     }
 
@@ -109,6 +117,30 @@ export default class VideoFeed extends React.PureComponent<IProps, IState> {
             }
             this.playMedia();
         }
+    }
+
+    private updateCallListeners(oldCall: MatrixCall | null, newCall: MatrixCall | null): void {
+        if (oldCall === newCall) return;
+        if (oldCall) {
+            oldCall.removeListener(CallEvent.LengthChanged, this.onCallLengthChanged);
+        }
+        if (newCall) {
+            this.setState({ callLengthSeconds: 0 });
+            newCall.on(CallEvent.LengthChanged, this.onCallLengthChanged);
+        }
+    }
+
+    private onCallLengthChanged = (lengthSeconds: number): void => {
+        this.setState({ callLengthSeconds: lengthSeconds });
+    };
+
+    private renderCallClock(): React.ReactNode {
+        if (!this.state.callLengthSeconds) return null;
+        return (
+            <div className="mx_clock">
+                <Clock seconds={this.state.callLengthSeconds} aria-live="off" />
+            </div>
+        );
     }
 
     private async playMedia(): Promise<void> {
@@ -213,9 +245,12 @@ export default class VideoFeed extends React.PureComponent<IProps, IState> {
             content = <video className={videoClasses} ref={this.setElementRef} />;
         }
 
+        const clock = this.state.videoMuted && primary ? this.renderCallClock() : null;
+
         return (
             <div className={wrapperClasses}>
                 {micIcon}
+                {clock}
                 {content}
             </div>
         );

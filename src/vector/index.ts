@@ -12,6 +12,7 @@ Please see LICENSE files in the repository root for full details.
 
 import { logger } from "matrix-js-sdk/src/logger";
 import { shouldPolyfill as shouldPolyFillIntlSegmenter } from "@formatjs/intl-segmenter/should-polyfill.js";
+import SdkConfig from "../SdkConfig";
 
 // These are things that can run before the skin loads - be careful not to reference the react-sdk though.
 import { parseQsFromFragment } from "./url_utils";
@@ -202,6 +203,23 @@ async function start(): Promise<void> {
         try {
             // await config here
             await loadConfigPromise;
+            const authRedirectUrl = SdkConfig.get("auth_pages_redirect_url");
+            if (authRedirectUrl) {
+                const normalizedPathname = window.location.pathname.replace(/\/+$/, "") || "/";
+                const hashPath = window.location.hash.split("?")[0];
+                const authPaths = new Set([
+                    "/welcome",
+                    "/welcome.html",
+                    "/welcome/index.html",
+                    "/login",
+                    "/register",
+                ]);
+                const authHashes = new Set(["#/welcome", "#/login", "#/register"]);
+                if (authPaths.has(normalizedPathname) || authHashes.has(hashPath)) {
+                    window.location.replace(authRedirectUrl);
+                    return;
+                }
+            }
         } catch (error) {
             // Now that we've loaded the theme (CSS), display the config syntax error if needed.
             if (error instanceof SyntaxError) {

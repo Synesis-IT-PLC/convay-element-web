@@ -22,7 +22,6 @@ import { normalize } from "matrix-js-sdk/src/utils";
 import React, {
     type ChangeEvent,
     type JSX,
-    useCallback,
     useContext,
     useEffect,
     useMemo,
@@ -33,12 +32,10 @@ import sanitizeHtml from "sanitize-html";
 import {
     ChatIcon,
     RoomIcon,
-    SpaceIcon,
     UserProfileIcon,
     FavouriteIcon,
     HomeIcon,
     GroupIcon,
-    CloseIcon,
     LinkIcon,
 } from "@vector-im/compound-design-tokens/assets/web/icons";
 
@@ -113,43 +110,12 @@ function nodeIsForRecentlyViewed(node?: HTMLElement): boolean {
     return node?.id?.startsWith("mx_SpotlightDialog_button_recentlyViewed_") === true;
 }
 
-function getRoomTypes(filter: Filter | null): Set<RoomType | null> {
-    const roomTypes = new Set<RoomType | null>();
-
-    if (filter === Filter.PublicRooms) roomTypes.add(null);
-    if (filter === Filter.PublicSpaces) roomTypes.add(RoomType.Space);
-
-    return roomTypes;
-}
-
 enum Section {
     People,
     Rooms,
     Spaces,
     Suggestions,
     PublicRoomsAndSpaces,
-}
-
-function filterToLabel(filter: Filter): string {
-    switch (filter) {
-        case Filter.People:
-            return _t("common|people");
-        case Filter.PublicRooms:
-            return _t("spotlight_dialog|public_rooms_label");
-        case Filter.PublicSpaces:
-            return _t("spotlight_dialog|public_spaces_label");
-    }
-}
-
-function filterToIcon(filter: Filter): JSX.Element {
-    switch (filter) {
-        case Filter.People:
-            return <UserProfileIcon />;
-        case Filter.PublicRooms:
-            return <RoomIcon />;
-        case Filter.PublicSpaces:
-            return <SpaceIcon />;
-    }
 }
 
 function metaspaceToIcon(key: MetaSpace): JSX.Element | undefined {
@@ -332,12 +298,8 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
     const rovingContext = useContext(RovingTabIndexContext);
     const [query, _setQuery] = useState(initialText);
     const [recentSearches, clearRecentSearches] = useRecentSearches();
-    const [filter, setFilterInternal] = useState<Filter | null>(initialFilter);
-    const setFilter = useCallback((filter: Filter | null) => {
-        setFilterInternal(filter);
-        inputRef.current?.focus();
-        scrollContainerRef.current?.scrollTo?.({ top: 0 });
-    }, []);
+    // Always keep filter as null to search across all types
+    const filter: Filter | null = null;
     const memberComparator = useMemo(() => {
         const activityScores = buildActivityScores(cli);
         const memberScores = buildMemberScores(cli);
@@ -348,17 +310,6 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
     const ownInviteLink = makeUserPermalink(cli.getUserId()!);
     const [inviteLinkCopied, setInviteLinkCopied] = useState<boolean>(false);
     const trimmedQuery = useMemo(() => query.trim(), [query]);
-
-    const [supportsSpaceFiltering, setSupportsSpaceFiltering] = useState(true); // assume it does until we find out it doesn't
-    useEffect(() => {
-        cli.isVersionSupported("v1.4")
-            .then((supported) => {
-                return supported || cli.doesServerSupportUnstableFeature("org.matrix.msc3827.stable");
-            })
-            .then((supported) => {
-                setSupportsSpaceFiltering(supported);
-            });
-    }, [cli]);
 
     const {
         loading: publicRoomsLoading,
@@ -375,19 +326,16 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
         () => [
             {
                 query: trimmedQuery,
-                roomTypes: getRoomTypes(filter),
+                roomTypes: new Set<RoomType | null>([null, RoomType.Space]), // Search both regular rooms and spaces
                 limit: SECTION_LIMIT,
             },
         ],
-        [trimmedQuery, filter],
+        [trimmedQuery],
     );
-    useDebouncedCallback(
-        filter === Filter.PublicRooms || filter === Filter.PublicSpaces,
-        searchPublicRooms,
-        searchParams,
-    );
-    useDebouncedCallback(filter === Filter.People, searchPeople, searchParams);
-    useDebouncedCallback(filter === Filter.People, searchProfileInfo, searchParams);
+    // Always search all types when there's a query
+    useDebouncedCallback(!!trimmedQuery, searchPublicRooms, searchParams);
+    useDebouncedCallback(!!trimmedQuery, searchPeople, searchParams);
+    useDebouncedCallback(!!trimmedQuery, searchProfileInfo, searchParams);
 
     const possibleResults = useMemo<Result[]>(() => {
         const visibleRooms = findVisibleRooms(cli, msc3946ProcessDynamicPredecessor);
@@ -439,8 +387,8 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
             ...roomResults,
             ...userResults,
             ...publicRooms.map(toPublicRoomResult),
-        ].filter((result) => filter === null || result.filter.includes(filter));
-    }, [cli, userDirectorySearchResults, profile, publicRooms, filter, msc3946ProcessDynamicPredecessor]);
+        ];
+    }, [cli, userDirectorySearchResults, profile, publicRooms, msc3946ProcessDynamicPredecessor]);
 
     const results = useMemo<Record<Section, Result[]>>(() => {
         const results: Record<Section, Result[]> = {
@@ -481,20 +429,6 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
 
                 results[entry.section].push(entry);
             });
-        } else if (filter === Filter.PublicRooms || filter === Filter.PublicSpaces) {
-            // return all results for public rooms if no query is given
-            possibleResults.forEach((entry) => {
-                if (isPublicRoomResult(entry)) {
-                    results[entry.section].push(entry);
-                }
-            });
-        } else if (filter === Filter.People) {
-            // return all results for people if no query is given
-            possibleResults.forEach((entry) => {
-                if (isMemberResult(entry)) {
-                    results[entry.section].push(entry);
-                }
-            });
         }
 
         // Sort results by most recent activity
@@ -520,7 +454,7 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
         }
 
         return results;
-    }, [trimmedQuery, filter, cli, possibleResults, userDirectorySearchResults, memberComparator]);
+    }, [trimmedQuery, cli, possibleResults, userDirectorySearchResults, memberComparator]);
 
     const numResults = sum(Object.values(results).map((it) => it.length));
     useWebSearchMetrics(numResults, query.length, true);
@@ -546,9 +480,9 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
             }
         });
         // we intentionally ignore changes to the rovingContext for the purpose of this hook
-        // we only want to reset the focus whenever the results or filters change
+        // we only want to reset the focus whenever the results change
         // eslint-disable-next-line
-    }, [results, filter]);
+    }, [results]);
 
     const viewRoom = (
         room: {
@@ -595,7 +529,8 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
     };
 
     let otherSearchesSection: JSX.Element | undefined;
-    if (trimmedQuery || (filter !== Filter.PublicRooms && filter !== Filter.PublicSpaces)) {
+    // Only show message search option when there's no query
+    if (!trimmedQuery) {
         otherSearchesSection = (
             <div
                 className="mx_SpotlightDialog_section mx_SpotlightDialog_otherSearches"
@@ -603,57 +538,29 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
                 aria-labelledby="mx_SpotlightDialog_section_otherSearches"
             >
                 <h4 id="mx_SpotlightDialog_section_otherSearches">
-                    {trimmedQuery
-                        ? _t("spotlight_dialog|heading_with_query", { query })
-                        : _t("spotlight_dialog|heading_without_query")}
+                    {_t("spotlight_dialog|heading_without_query")}
                 </h4>
                 <div>
-                    {filter !== Filter.PublicSpaces && supportsSpaceFiltering && (
-                        <Option
-                            id="mx_SpotlightDialog_button_explorePublicSpaces"
-                            onClick={() => setFilter(Filter.PublicSpaces)}
-                        >
-                            {filterToIcon(Filter.PublicSpaces)}
-                            {filterToLabel(Filter.PublicSpaces)}
-                        </Option>
-                    )}
-                    {filter !== Filter.PublicRooms && (
-                        <Option
-                            id="mx_SpotlightDialog_button_explorePublicRooms"
-                            onClick={() => setFilter(Filter.PublicRooms)}
-                        >
-                            {filterToIcon(Filter.PublicRooms)}
-                            {filterToLabel(Filter.PublicRooms)}
-                        </Option>
-                    )}
-                    {filter !== Filter.People && (
-                        <Option id="mx_SpotlightDialog_button_startChat" onClick={() => setFilter(Filter.People)}>
-                            {filterToIcon(Filter.People)}
-                            {filterToLabel(Filter.People)}
-                        </Option>
-                    )}
-                    {filter === null && (
-                        <Option
-                            id="mx_SpotlightDialog_button_searchMessages"
-                            onClick={() => {
-                                defaultDispatcher.dispatch({
-                                    action: Action.FocusMessageSearch,
-                                    initialText: trimmedQuery,
-                                });
-                                onFinished();
-                            }}
-                        >
-                            <ChatIcon />
-                            {_t("spotlight_dialog|messages_label")}
-                        </Option>
-                    )}
+                    <Option
+                        id="mx_SpotlightDialog_button_searchMessages"
+                        onClick={() => {
+                            defaultDispatcher.dispatch({
+                                action: Action.FocusMessageSearch,
+                                initialText: trimmedQuery,
+                            });
+                            onFinished();
+                        }}
+                    >
+                        <ChatIcon />
+                        {_t("spotlight_dialog|messages_label")}
+                    </Option>
                 </div>
             </div>
         );
     }
 
     let content: JSX.Element;
-    if (trimmedQuery || filter !== null) {
+    if (trimmedQuery) {
         const resultMapper = (result: Result): JSX.Element => {
             if (isRoomResult(result)) {
                 const notification = RoomNotificationStateStore.instance.getRoomState(result.room);
@@ -813,7 +720,7 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
         }
 
         let suggestionsSection: JSX.Element | undefined;
-        if (results[Section.Suggestions].length && filter === Filter.People) {
+        if (results[Section.Suggestions].length) {
             suggestionsSection = (
                 <div
                     className="mx_SpotlightDialog_section mx_SpotlightDialog_results"
@@ -855,7 +762,7 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
         }
 
         let publicRoomsSection: JSX.Element | undefined;
-        if (filter === Filter.PublicRooms || filter === Filter.PublicSpaces) {
+        if (results[Section.PublicRoomsAndSpaces].length > 0) {
             let content: JSX.Element | JSX.Element[];
             if (publicRoomsError) {
                 content = (
@@ -887,7 +794,7 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
         }
 
         let spaceRoomsSection: JSX.Element | undefined;
-        if (spaceResults.length && activeSpace && filter === null) {
+        if (spaceResults.length && activeSpace) {
             spaceRoomsSection = (
                 <div
                     className="mx_SpotlightDialog_section mx_SpotlightDialog_results"
@@ -965,7 +872,8 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
         }
 
         let hiddenResultsSection: JSX.Element | undefined;
-        if (filter === Filter.People) {
+        // Show privacy warning if searching for people and no results found
+        if (results[Section.People].length === 0 && results[Section.Suggestions].length === 0 && trimmedQuery) {
             hiddenResultsSection = (
                 <div className="mx_SpotlightDialog_section mx_SpotlightDialog_hiddenResults" role="group">
                     <h4>{_t("spotlight_dialog|result_may_be_hidden_privacy_warning")}</h4>
@@ -991,7 +899,7 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
                     </TooltipOption>
                 </div>
             );
-        } else if (trimmedQuery && (filter === Filter.PublicRooms || filter === Filter.PublicSpaces)) {
+        } else if (trimmedQuery && results[Section.PublicRoomsAndSpaces].length === 0) {
             hiddenResultsSection = (
                 <div className="mx_SpotlightDialog_section mx_SpotlightDialog_hiddenResults" role="group">
                     <h4>{_t("spotlight_dialog|result_may_be_hidden_warning")}</h4>
@@ -1019,7 +927,8 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
         }
 
         let groupChatSection: JSX.Element | undefined;
-        if (filter === Filter.People) {
+        // Show group chat option when searching
+        if (trimmedQuery) {
             groupChatSection = (
                 <div
                     className="mx_SpotlightDialog_section mx_SpotlightDialog_otherSearches"
@@ -1170,7 +1079,7 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
 
                 if (rovingContext.state.activeNode && rovingContext.state.nodes.length > 0) {
                     let nodes = rovingContext.state.nodes;
-                    if (!query && filter === null) {
+                    if (!query) {
                         // If the current selection is not in the recently viewed row then only include the
                         // first recently viewed so that is the target when the user is switching into recently viewed.
                         const keptRecentlyViewedRef = nodeIsForRecentlyViewed(rovingContext.state.activeNode)
@@ -1190,7 +1099,6 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
                 // only handle these keys when we are in the recently viewed row of options
                 if (
                     !query &&
-                    filter === null &&
                     rovingContext.state.activeNode &&
                     rovingContext.state.nodes.length > 0 &&
                     nodeIsForRecentlyViewed(rovingContext.state.activeNode)
@@ -1225,11 +1133,7 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
 
         switch (action) {
             case KeyBindingAction.Backspace:
-                if (!query && filter !== null) {
-                    ev.stopPropagation();
-                    ev.preventDefault();
-                    setFilter(null);
-                }
+                // No filter to remove anymore
                 break;
             case KeyBindingAction.Enter:
                 ev.stopPropagation();
@@ -1252,8 +1156,8 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
                             <>
                                 <kbd>↓</kbd>
                                 <kbd>↑</kbd>
-                                {filter === null && !query && <kbd>←</kbd>}
-                                {filter === null && !query && <kbd>→</kbd>}
+                                {!query && <kbd>←</kbd>}
+                                {!query && <kbd>→</kbd>}
                             </>
                         ),
                     },
@@ -1269,22 +1173,6 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
                 aria-label={_t("spotlight_dialog|search_dialog")}
             >
                 <div className="mx_SpotlightDialog_searchBox mx_textinput">
-                    {filter !== null && (
-                        <div className="mx_SpotlightDialog_filter">
-                            {filterToIcon(filter)}
-                            <span>{filterToLabel(filter)}</span>
-                            <AccessibleButton
-                                tabIndex={-1}
-                                title={_t("spotlight_dialog|remove_filter", {
-                                    filter: filterToLabel(filter),
-                                })}
-                                className="mx_SpotlightDialog_filter--close"
-                                onClick={() => setFilter(null)}
-                            >
-                                <CloseIcon />
-                            </AccessibleButton>
-                        </div>
-                    )}
                     <input
                         ref={inputRef}
                         autoFocus

@@ -23,7 +23,7 @@ import SettingsStore from "../../../../../settings/SettingsStore";
 import { UIFeature } from "../../../../../settings/UIFeature";
 import { type ActionPayload } from "../../../../../dispatcher/payloads";
 import SettingsFlag from "../../../elements/SettingsFlag";
-import EventIndexPanel from "../../EventIndexPanel";
+// import EventIndexPanel from "../../EventIndexPanel";
 import InlineSpinner from "../../../elements/InlineSpinner";
 import { PosthogAnalytics } from "../../../../../PosthogAnalytics";
 import { showDialog as showAnalyticsLearnMoreDialog } from "../../../dialogs/AnalyticsLearnMoreDialog";
@@ -31,7 +31,7 @@ import { privateShouldBeEncrypted } from "../../../../../utils/rooms";
 import SettingsTab from "../SettingsTab";
 import { SettingsSection } from "../../shared/SettingsSection";
 import { SettingsSubsection, SettingsSubsectionText } from "../../shared/SettingsSubsection";
-import { useOwnDevices } from "../../devices/useOwnDevices";
+// import { useOwnDevices } from "../../devices/useOwnDevices";
 import { DiscoverySettings } from "../../discovery/DiscoverySettings";
 import SetIntegrationManager from "../../SetIntegrationManager";
 
@@ -41,21 +41,21 @@ interface IIgnoredUserProps {
     inProgress: boolean;
 }
 
-const SecureBackup: React.FC = () => {
-    const { dehydratedDeviceId } = useOwnDevices();
-    if (!dehydratedDeviceId) return null;
+// const SecureBackup: React.FC = () => {
+//     const { dehydratedDeviceId } = useOwnDevices();
+//     if (!dehydratedDeviceId) return null;
 
-    return (
-        <SettingsSubsection heading={_t("common|secure_backup")}>
-            <div className="mx_SettingsSubsection_content">
-                <div className="mx_SettingsFlag_label">{_t("settings|security|dehydrated_device_enabled")}</div>
-                <div className="mx_SettingsSubsection_text">
-                    {_t("settings|security|dehydrated_device_description")}
-                </div>
-            </div>
-        </SettingsSubsection>
-    );
-};
+//     return (
+//         <SettingsSubsection heading={_t("common|secure_backup")}>
+//             <div className="mx_SettingsSubsection_content">
+//                 <div className="mx_SettingsFlag_label">{_t("settings|security|dehydrated_device_enabled")}</div>
+//                 <div className="mx_SettingsSubsection_text">
+//                     {_t("settings|security|dehydrated_device_description")}
+//                 </div>
+//             </div>
+//         </SettingsSubsection>
+//     );
+// };
 
 export class IgnoredUser extends React.Component<IIgnoredUserProps> {
     private onUnignoreClicked = (): void => {
@@ -295,13 +295,13 @@ export default class SecurityUserSettingsTab extends React.Component<IProps, ISt
     }
 
     public render(): React.ReactNode {
-        const secureBackup = <SecureBackup />;
+        // const secureBackup = <SecureBackup />;
 
-        const eventIndex = (
-            <SettingsSubsection heading={_t("settings|security|message_search_section")}>
-                <EventIndexPanel />
-            </SettingsSubsection>
-        );
+        // const eventIndex = (
+        //     <SettingsSubsection heading={_t("settings|security|message_search_section")}>
+        //         <EventIndexPanel />
+        //     </SettingsSubsection>
+        // );
 
         let warning;
         if (!privateShouldBeEncrypted(MatrixClientPeg.safeGet())) {
@@ -366,10 +366,10 @@ export default class SecurityUserSettingsTab extends React.Component<IProps, ISt
             <SettingsTab>
                 {warning}
                 <SetIntegrationManager />
-                <SettingsSection heading={_t("settings|security|encryption_section")}>
+                {/* <SettingsSection heading={_t("settings|security|encryption_section")}>
                     {secureBackup}
                     {eventIndex}
-                </SettingsSection>
+                </SettingsSection> */}
                 <SettingsSection heading={_t("common|privacy")}>
                     <DiscoverySettings />
                     {posthogSection}

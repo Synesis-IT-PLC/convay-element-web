@@ -23,33 +23,33 @@ import { type XOR } from "../../../@types/common";
 import { useSettingValue } from "../../../hooks/useSettings.ts";
 
 /* eslint-disable @typescript-eslint/no-require-imports */
-const SOCIALS = [
-    {
-        name: "Facebook",
-        img: require("../../../../res/img/social/facebook.png"),
-        url: (url: string) => `https://www.facebook.com/sharer/sharer.php?u=${url}`,
-    },
-    {
-        name: "Twitter",
-        img: require("../../../../res/img/social/twitter-2.png"),
-        url: (url: string) => `https://twitter.com/home?status=${url}`,
-    },
-    {
-        name: "LinkedIn",
-        img: require("../../../../res/img/social/linkedin.png"),
-        url: (url: string) => `https://www.linkedin.com/shareArticle?mini=true&url=${url}`,
-    },
-    {
-        name: "Reddit",
-        img: require("../../../../res/img/social/reddit.png"),
-        url: (url: string) => `https://www.reddit.com/submit?url=${url}`,
-    },
-    {
-        name: "email",
-        img: require("../../../../res/img/social/email-1.png"),
-        url: (url: string) => `mailto:?body=${url}`,
-    },
-];
+// const SOCIALS = [
+//     {
+//         name: "Facebook",
+//         img: require("../../../../res/img/social/facebook.png"),
+//         url: (url: string) => `https://www.facebook.com/sharer/sharer.php?u=${url}`,
+//     },
+//     {
+//         name: "Twitter",
+//         img: require("../../../../res/img/social/twitter-2.png"),
+//         url: (url: string) => `https://twitter.com/home?status=${url}`,
+//     },
+//     {
+//         name: "LinkedIn",
+//         img: require("../../../../res/img/social/linkedin.png"),
+//         url: (url: string) => `https://www.linkedin.com/shareArticle?mini=true&url=${url}`,
+//     },
+//     {
+//         name: "Reddit",
+//         img: require("../../../../res/img/social/reddit.png"),
+//         url: (url: string) => `https://www.reddit.com/submit?url=${url}`,
+//     },
+//     {
+//         name: "email",
+//         img: require("../../../../res/img/social/email-1.png"),
+//         url: (url: string) => `mailto:?body=${url}`,
+//     },
+// ];
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 interface BaseProps {
@@ -101,7 +101,7 @@ type ShareDialogProps = XOR<Props, EventProps>;
  */
 export function ShareDialog({ target, customTitle, onFinished, permalinkCreator }: ShareDialogProps): JSX.Element {
     const showQrCode = useSettingValue(UIFeature.ShareQRCode);
-    const showSocials = useSettingValue(UIFeature.ShareSocial);
+    // const showSocials = useSettingValue(UIFeature.ShareSocial);
 
     const timeoutIdRef = useRef<number>(undefined);
     const [isCopied, setIsCopied] = useState(false);
@@ -143,7 +143,7 @@ export function ShareDialog({ target, customTitle, onFinished, permalinkCreator 
                 >
                     {isCopied ? _t("share|link_copied") : _t("action|copy_link")}
                 </Button>
-                {showSocials && <SocialLinks url={url} />}
+                {/* {showSocials && <SocialLinks url={url} />} */}
             </div>
         </BaseDialog>
     );
@@ -152,33 +152,33 @@ export function ShareDialog({ target, customTitle, onFinished, permalinkCreator 
 /**
  * Social links to share the link on different platforms.
  */
-interface SocialLinksProps {
-    /**
-     * The URL to share.
-     */
-    url: string;
-}
+// interface SocialLinksProps {
+//     /**
+//      * The URL to share.
+//      */
+//     url: string;
+// }
 
 /**
  * The socials to share the link on.
  */
-function SocialLinks({ url }: SocialLinksProps): JSX.Element {
-    return (
-        <div className="mx_ShareDialog_social">
-            {SOCIALS.map((social) => (
-                <a
-                    key={social.name}
-                    href={social.url(url)}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    title={social.name}
-                >
-                    <img src={social.img} alt={social.name} />
-                </a>
-            ))}
-        </div>
-    );
-}
+// function SocialLinks({ url }: SocialLinksProps): JSX.Element {
+//     return (
+//         <div className="mx_ShareDialog_social">
+//             {SOCIALS.map((social) => (
+//                 <a
+//                     key={social.name}
+//                     href={social.url(url)}
+//                     target="_blank"
+//                     rel="noreferrer noopener"
+//                     title={social.name}
+//                 >
+//                     <img src={social.img} alt={social.name} />
+//                 </a>
+//             ))}
+//         </div>
+//     );
+// }
 
 /**
  * Get the title, url and checkbox label for the dialog based on the target.

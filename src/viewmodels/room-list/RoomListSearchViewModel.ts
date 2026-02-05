@@ -88,6 +88,14 @@ export class RoomListSearchViewModel
     };
 
     /**
+     * Handles the settings button click event.
+     * Opens the user settings dialog.
+     */
+    public onSettingsClick = (_ev: MouseEvent<HTMLButtonElement>): void => {
+        defaultDispatcher.dispatch({ action: Action.ViewUserSettings });
+    };
+
+    /**
      * Handles the dial pad button click event.
      * Opens the dial pad dialog.
      */

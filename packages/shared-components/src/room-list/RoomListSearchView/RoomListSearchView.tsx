@@ -10,6 +10,7 @@ import { Button } from "@vector-im/compound-web";
 import ExploreIcon from "@vector-im/compound-design-tokens/assets/web/icons/explore";
 import SearchIcon from "@vector-im/compound-design-tokens/assets/web/icons/search";
 import DialPadIcon from "@vector-im/compound-design-tokens/assets/web/icons/dial-pad";
+import SettingsSolidIcon from "@vector-im/compound-design-tokens/assets/web/icons/settings-solid";
 
 import styles from "./RoomListSearchView.module.css";
 import { type ViewModel } from "../../viewmodel/ViewModel";
@@ -38,6 +39,10 @@ export interface RoomListSearchViewActions {
      * Handles the click event on the search button.
      */
     onSearchClick: MouseEventHandler<HTMLButtonElement>;
+    /**
+     * Handles the click event on the settings button.
+     */
+    onSettingsClick: MouseEventHandler<HTMLButtonElement>;
     /**
      * Handles the click event on the dial pad button.
      */
@@ -94,6 +99,14 @@ export function RoomListSearchView({ vm }: Readonly<RoomListSearchViewProps>): J
                     <kbd>{searchShortcut}</kbd>
                 </Flex>
             </Button>
+            <Button
+                kind="secondary"
+                size="sm"
+                Icon={SettingsSolidIcon}
+                iconOnly={true}
+                aria-label={_t("common|settings")}
+                onClick={vm.onSettingsClick}
+            />
             {displayDialButton && (
                 <Button
                     kind="secondary"

@@ -49,11 +49,13 @@ describe("RoomListSearchView", () => {
 
     describe("User interactions", () => {
         const onSearchClick = jest.fn();
+        const onSettingsClick = jest.fn();
         const onDialPadClick = jest.fn();
         const onExploreClick = jest.fn();
 
         class TestViewModel extends MockViewModel<RoomListSearchViewSnapshot> implements RoomListSearchViewActions {
             public onSearchClick = onSearchClick;
+            public onSettingsClick = onSettingsClick;
             public onDialPadClick = onDialPadClick;
             public onExploreClick = onExploreClick;
         }

@@ -12,6 +12,7 @@ import {
     BoldIcon,
     ItalicIcon,
     StrikethroughIcon,
+    ListBulletedIcon,
     InlineCodeIcon,
     QuoteIcon,
     LinkIcon,
@@ -28,6 +29,7 @@ export enum Formatting {
     Code = "code",
     Quote = "quote",
     InsertLink = "insert_link",
+    UnorderedList = "unordered_list",
 }
 
 interface IProps {
@@ -98,6 +100,13 @@ export default class MessageComposerFormatBar extends React.PureComponent<IProps
                     onClick={() => this.props.onAction(Formatting.InsertLink)}
                     icon={<LinkIcon />}
                     shortcut={this.props.shortcuts.insert_link}
+                    visible={this.state.visible}
+                />
+                <FormatButton
+                    label={_t("composer|format_unordered_list")}
+                    onClick={() => this.props.onAction(Formatting.UnorderedList)}
+                    icon={<ListBulletedIcon />}
+                    shortcut={this.props.shortcuts.unordered_list}
                     visible={this.state.visible}
                 />
             </Toolbar>

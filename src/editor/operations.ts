@@ -45,6 +45,9 @@ export function formatRange(range: Range, action: Formatting): void {
         case Formatting.Strikethrough:
             toggleInlineFormat(range, "<del>", "</del>");
             break;
+        case Formatting.UnorderedList:
+            formatRangeAsUnorderedList(range);
+            break;
         case Formatting.Code:
             formatRangeAsCode(range);
             break;
@@ -163,6 +166,26 @@ export function formatRangeAsQuote(range: Range): void {
         }
     }
     parts.unshift(partCreator.plain("> "));
+    if (!rangeStartsAtBeginningOfLine(range)) {
+        parts.unshift(partCreator.newline());
+    }
+    if (!rangeEndsAtEndOfLine(range)) {
+        parts.push(partCreator.newline());
+    }
+    parts.push(partCreator.newline());
+    replaceRangeAndExpandSelection(range, parts);
+}
+
+export function formatRangeAsUnorderedList(range: Range): void {
+    const { model, parts } = range;
+    const { partCreator } = model;
+    for (let i = 0; i < parts.length; ++i) {
+        const part = parts[i];
+        if (part.type === Type.Newline) {
+            parts.splice(i + 1, 0, partCreator.plain("- "));
+        }
+    }
+    parts.unshift(partCreator.plain("- "));
     if (!rangeStartsAtBeginningOfLine(range)) {
         parts.unshift(partCreator.newline());
     }

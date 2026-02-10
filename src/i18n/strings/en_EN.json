@@ -633,7 +633,7 @@
         "format_ordered_list": "Numbered list",
         "format_strikethrough": "Strikethrough",
         "format_underline": "Underline",
-        "format_unordered_list": "Bulleted list",
+        "format_unordered_list": "Bullet point",
         "formatting_toolbar_label": "Formatting",
         "link_modal": {
             "link_field_label": "Link",

@@ -39,13 +39,15 @@
         "breadcrumbs": true
     },
     "jitsi": {
-        "preferred_domain": "meet.element.io"
+        "preferred_domain": "meet10655.convay.com/"
     },
     "element_call": {
         "url": "https://call.element.io",
-        "brand": "Element Call"
+        "brand": "Convay Chat"
     },
     "map_style_url": "https://api.maptiler.com/maps/streets/style.json?key=fU3vlMsMn4Jb6dnEIFsx",
     "jwt_validate_url": "https://sandboxml.convay.com:8092/services/organizationsettings/v1/authenticate/by-token",
-    "jwt_failure_redirect_url": "https://sandboxml.convay.com:8092"
+    "jwt_failure_redirect_url": "https://sandboxml.convay.com",
+    "auth_pages_redirect_url": "https://sandboxml.convay.com",
+    "logout_redirect_url": "https://sandboxml.convay.com"
 }

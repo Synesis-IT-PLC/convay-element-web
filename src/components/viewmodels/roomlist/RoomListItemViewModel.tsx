@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { type Room, RoomEvent } from "matrix-js-sdk/src/matrix";
 import { CallType } from "matrix-js-sdk/src/webrtc/call";
+import { CallState } from "matrix-js-sdk/src/webrtc/call";
 
 import dispatcher from "../../../dispatcher/dispatcher";
 import type { ViewRoomPayload } from "../../../dispatcher/payloads/ViewRoomPayload";
@@ -25,6 +26,8 @@ import { NotificationStateEvents } from "../../../stores/notifications/Notificat
 import DMRoomMap from "../../../utils/DMRoomMap";
 import { MessagePreviewStore } from "../../../stores/room-list/MessagePreviewStore";
 import { useMessagePreviewToggle } from "./useMessagePreviewToggle";
+import { LegacyCallHandlerEvent } from "../../../LegacyCallHandler";
+import { SdkContextClass } from "../../../contexts/SDKContext";
 
 export interface RoomListItemViewState {
     /**
@@ -81,6 +84,11 @@ export interface RoomListItemViewState {
      * Whether the notification decoration should be shown.
      */
     showNotificationDecoration: boolean;
+    /**
+     * Whether the user is currently in an active call in this room.
+     * This covers both legacy 1:1 calls and Element Call/Jitsi group calls.
+     */
+    isInCall: boolean;
 }
 
 /**
@@ -131,6 +139,19 @@ export function useRoomListItemViewModel(room: Room): RoomListItemViewState {
     const participantCount = useParticipantCount(call);
     const callConnectionState = call ? connectionState : null;
 
+    // Legacy 1:1 call detection
+    const legacyCall = useEventEmitterState(
+        SdkContextClass.instance.legacyCallHandler,
+        LegacyCallHandlerEvent.CallsChanged,
+        () => SdkContextClass.instance.legacyCallHandler.getCallForRoom(room.roomId),
+    );
+    const isLegacyCallActive =
+        legacyCall !== null && legacyCall.state !== CallState.Ended && legacyCall.state !== CallState.Ringing;
+    const legacyCallType = legacyCall?.type;
+
+    // Determine if the user is in an active call (either legacy or Element Call/Jitsi)
+    const isInCall = isLegacyCallActive || participantCount > 0;
+
     const showNotificationDecoration = hasVisibleNotification || participantCount > 0;
 
     // Actions
@@ -146,6 +167,9 @@ export function useRoomListItemViewModel(room: Room): RoomListItemViewState {
     const [callType, setCallType] = useState<CallType>(CallType.Video);
     useTypedEventEmitter(call ?? undefined, CallEvent.CallTypeChanged, setCallType);
 
+    // Resolve the effective call type: legacy call type takes precedence if there is one
+    const effectiveCallType = isLegacyCallActive ? legacyCallType : call ? callType : undefined;
+
     return {
         name,
         notificationState,
@@ -159,7 +183,8 @@ export function useRoomListItemViewModel(room: Room): RoomListItemViewState {
         hasParticipantInCall: participantCount > 0,
         messagePreview,
         showNotificationDecoration,
-        callType: call ? callType : undefined,
+        callType: effectiveCallType,
+        isInCall,
     };
 }
 

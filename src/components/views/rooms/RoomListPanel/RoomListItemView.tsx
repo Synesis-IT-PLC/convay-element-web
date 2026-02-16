@@ -9,6 +9,11 @@ import React, { type JSX, memo, useEffect, useRef } from "react";
 import { type Room } from "matrix-js-sdk/src/matrix";
 import classNames from "classnames";
 import { Flex } from "@element-hq/web-shared-components";
+import { CallType } from "matrix-js-sdk/src/webrtc/call";
+import {
+    VideoCallSolidIcon,
+    VoiceCallSolidIcon,
+} from "@vector-im/compound-design-tokens/assets/web/icons";
 
 import { useRoomListItemViewModel } from "../../../viewmodels/roomlist/RoomListItemViewModel";
 import { RoomListItemMenuView } from "./RoomListItemMenuView";
@@ -97,6 +102,23 @@ export const RoomListItemView = memo(function RoomListItemView({
                 <div className="mx_RoomListItemView_text">
                     <div className="mx_RoomListItemView_roomName" title={vm.name}>
                         {vm.name}
+                        {vm.isInCall && (
+                            <span className="mx_RoomListItemView_callIcon" aria-label="In call">
+                                {vm.callType === CallType.Video ? (
+                                    <VideoCallSolidIcon
+                                        width="16px"
+                                        height="16px"
+                                        fill="var(--cpd-color-icon-accent-primary)"
+                                    />
+                                ) : (
+                                    <VoiceCallSolidIcon
+                                        width="16px"
+                                        height="16px"
+                                        fill="var(--cpd-color-icon-accent-primary)"
+                                    />
+                                )}
+                            </span>
+                        )}
                     </div>
                     {vm.messagePreview && (
                         <div className="mx_RoomListItemView_messagePreview" title={vm.messagePreview}>

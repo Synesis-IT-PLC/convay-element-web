@@ -3974,6 +3974,8 @@
     "voip": {
         "already_in_call": "Already in call",
         "already_in_call_person": "You're already in a call with this person.",
+        "recipient_busy": "Recipient is busy",
+        "recipient_busy_description": "The person you're trying to call is currently on another call. Please try again later.",
         "answered_elsewhere": "Answered Elsewhere",
         "answered_elsewhere_description": "The call was answered on another device.",
         "call_failed": "Call Failed",

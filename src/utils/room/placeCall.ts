@@ -8,6 +8,7 @@ Please see LICENSE files in the repository root for full details.
 
 import { type CallType } from "matrix-js-sdk/src/webrtc/call";
 import { type Room } from "matrix-js-sdk/src/matrix";
+import { logger } from "matrix-js-sdk/src/logger";
 
 import LegacyCallHandler from "../../LegacyCallHandler";
 import { getPlatformCallTypeProps, PlatformCallType } from "../../hooks/room/useRoomCall";
@@ -22,16 +23,30 @@ import { _t } from "../../languageHandler";
 import { IN_CALL_PRESENCE_STATUS } from "../../models/Call";
 
 
-// Check if recipient's presence status_msg indicates they are in a call
-function isDmRecipientBusy(room: Room): boolean {
+// Check if recipient's presence status_msg indicates they are in a call.
+// Fetches fresh presence from the server to avoid stale cached data.
+async function isDmRecipientBusy(room: Room): Promise<boolean> {
     const dmUserId = DMRoomMap.shared().getUserIdForRoomId(room.roomId);
     if (!dmUserId) return false;
 
     const client = room.client;
 
-    const user = client.getUser(dmUserId);
-    if (user?.presenceStatusMsg === IN_CALL_PRESENCE_STATUS) {
-        return true;
+    try {
+        const presence = await client.getPresence(dmUserId);
+        // Only consider the user busy if they are online AND have in_call status.
+        // If they are offline/unavailable, the status_msg is stale from a previous session.
+        if (presence.presence === "online" && presence.status_msg === IN_CALL_PRESENCE_STATUS) {
+            logger.debug("isDmRecipientBusy: " + dmUserId + " is currently in a call (fresh presence check)");
+            return true;
+        }
+    } catch (err) {
+        logger.warn("isDmRecipientBusy: Failed to fetch fresh presence, falling back to cached:", err);
+        // Fall back to cached presence if the server request fails
+        const user = client.getUser(dmUserId);
+        if (user?.presence === "online" && user?.presenceStatusMsg === IN_CALL_PRESENCE_STATUS) {
+            logger.debug("isDmRecipientBusy: " + user?.displayName + " is currently in a call (cached presence)");
+            return true;
+        }
     }
 
     return false;
@@ -55,7 +70,7 @@ export const placeCall = async (
     PosthogTrackers.trackInteraction(analyticsName);
 
     //if the recipient is busy modal
-    if (isDmRecipientBusy(room)) {
+    if (await isDmRecipientBusy(room)) {
         Modal.createDialog(ErrorDialog, {
             title: _t("voip|recipient_busy"),
             description: _t("voip|recipient_busy_description"),

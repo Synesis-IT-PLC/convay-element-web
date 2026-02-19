@@ -26,6 +26,7 @@ import { IN_CALL_PRESENCE_STATUS } from "../../models/Call";
 // Check if recipient's presence status_msg indicates they are in a call.
 // Fetches fresh presence from the server to avoid stale cached data.
 async function isDmRecipientBusy(room: Room): Promise<boolean> {
+
     const dmUserId = DMRoomMap.shared().getUserIdForRoomId(room.roomId);
     if (!dmUserId) return false;
 
@@ -47,6 +48,7 @@ async function isDmRecipientBusy(room: Room): Promise<boolean> {
             logger.debug("isDmRecipientBusy: " + user?.displayName + " is currently in a call (cached presence)");
             return true;
         }
+
     }
 
     return false;
@@ -71,6 +73,7 @@ export const placeCall = async (
 
     //if the recipient is busy modal
     if (await isDmRecipientBusy(room)) {
+
         Modal.createDialog(ErrorDialog, {
             title: _t("voip|recipient_busy"),
             description: _t("voip|recipient_busy_description"),

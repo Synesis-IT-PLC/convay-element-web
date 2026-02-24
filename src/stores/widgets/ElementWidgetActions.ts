@@ -48,6 +48,7 @@ export enum ElementWidgetActions {
 export interface IHangupCallApiRequest extends IWidgetApiRequest {
     data: {
         errorMessage?: string;
+        removeWidget?: boolean;
     };
 }
 

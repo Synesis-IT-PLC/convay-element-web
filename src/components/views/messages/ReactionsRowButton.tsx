@@ -30,6 +30,8 @@ export interface IProps {
     reactionEvents: MatrixEvent[];
     // A possible Matrix event if the current user has voted for this type
     myReactionEvent?: MatrixEvent;
+    // All of the current user's non-redacted reaction events on this message
+    allMyReactionEvents?: MatrixEvent[];
     // Whether to prevent quick-reactions by clicking on this reaction
     disabled?: boolean;
     // Whether to render custom image reactions
@@ -41,11 +43,19 @@ export default class ReactionsRowButton extends React.PureComponent<IProps> {
     declare public context: React.ContextType<typeof MatrixClientContext>;
 
     public onClick = (): void => {
-        const { mxEvent, myReactionEvent, content } = this.props;
+        const { mxEvent, myReactionEvent, content, allMyReactionEvents } = this.props;
         if (myReactionEvent) {
             this.context.redactEvent(mxEvent.getRoomId()!, myReactionEvent.getId()!);
         } else {
-            this.context.sendEvent(mxEvent.getRoomId()!, EventType.Reaction, {
+            const roomId = mxEvent.getRoomId()!;
+            if (allMyReactionEvents) {
+                for (const evt of allMyReactionEvents) {
+                    if (!evt.isRedacted()) {
+                        this.context.redactEvent(roomId, evt.getId()!);
+                    }
+                }
+            }
+            this.context.sendEvent(roomId, EventType.Reaction, {
                 "m.relates_to": {
                     rel_type: RelationType.Annotation,
                     event_id: mxEvent.getId()!,

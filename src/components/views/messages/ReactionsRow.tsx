@@ -193,6 +193,7 @@ export default class ReactionsRow extends React.PureComponent<IProps, IState> {
                         mxEvent={mxEvent}
                         reactionEvents={deduplicatedEvents}
                         myReactionEvent={myReactionEvent}
+                        allMyReactionEvents={myReactions ?? undefined}
                         customReactionImagesEnabled={customReactionImagesEnabled}
                         disabled={
                             !this.context.canReact ||

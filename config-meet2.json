@@ -42,16 +42,13 @@
     "setting_defaults": {
         "breadcrumbs": true
     },
-    "jitsi": {
-        "preferred_domain": "meet10655.convay.com/"
-    },
+    "jitsi": {},
     "element_call": {
-        "url": "https://call.synesisit.info",
         "brand": "Convay Chat",
         "use_exclusively": true
     },
     "livekit": {
-        "livekit_service_url": "https://livekit.convay.com"
+        "livekit_service_url": "https://livekit-meet2.convay.com"
     },
     "map_style_url": "https://api.maptiler.com/maps/streets/style.json?key=fU3vlMsMn4Jb6dnEIFsx",
     "jwt_validate_url": "https://meet2.synesisit.info:8092/services/organizationsettings/v1/authenticate/by-token",

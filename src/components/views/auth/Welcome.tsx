@@ -21,6 +21,9 @@ export default class Welcome extends React.PureComponent<EmptyObject> {
     public render(): React.ReactNode {
         const pagesConfig = SdkConfig.getObject("embedded_pages");
         let pageUrl: string | undefined;
+
+        const authRedirectUrl = SdkConfig.get("auth_pages_redirect_url");
+
         if (pagesConfig) {
             pageUrl = pagesConfig.get("welcome_url");
         }
@@ -38,6 +41,7 @@ export default class Welcome extends React.PureComponent<EmptyObject> {
             const brandingConfig = SdkConfig.getObject("branding");
             const logoUrl = brandingConfig?.get("auth_header_logo_url") ?? "themes/element/img/logos/element-logo.svg";
             replaceMap["$logoUrl"] = logoUrl;
+            replaceMap["$authRedirectUrl"] = authRedirectUrl ?? "#/login";
             pageUrl = "welcome.html";
         }
 

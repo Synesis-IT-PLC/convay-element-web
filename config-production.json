@@ -48,6 +48,10 @@
         "brand": "Convay Chat",
         "use_exclusively": true
     },
+    "branding": {
+        "auth_header_logo_url": "vector-icons/520.png",
+        "welcomeBackgroundUrl": "themes/convay_auth_bg.png"
+    },
     "livekit": {
         "livekit_service_url": "https://livekit-prod.convay.com"
     },

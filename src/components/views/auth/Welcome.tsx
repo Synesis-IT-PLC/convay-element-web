@@ -23,6 +23,8 @@ export default class Welcome extends React.PureComponent<EmptyObject> {
         let pageUrl: string | undefined;
 
         const authRedirectUrl = SdkConfig.get("auth_pages_redirect_url");
+        const authSignInUrl = SdkConfig.get("auth_signin_url");
+        const authSignUpUrl = SdkConfig.get("auth_signup_url");
 
         if (pagesConfig) {
             pageUrl = pagesConfig.get("welcome_url");
@@ -41,7 +43,8 @@ export default class Welcome extends React.PureComponent<EmptyObject> {
             const brandingConfig = SdkConfig.getObject("branding");
             const logoUrl = brandingConfig?.get("auth_header_logo_url") ?? "themes/element/img/logos/element-logo.svg";
             replaceMap["$logoUrl"] = logoUrl;
-            replaceMap["$authRedirectUrl"] = authRedirectUrl ?? "#/login";
+            replaceMap["$signInUrl"] = authSignInUrl ?? authRedirectUrl ?? "#/login";
+            replaceMap["$signUpUrl"] = authSignUpUrl ?? authRedirectUrl ?? "#/register";
             pageUrl = "welcome.html";
         }
 

@@ -548,5 +548,19 @@ const updateParticipants = (): void => {
     });
 };
 
-const onLog = ({ logLevel, args }: LogEvent): void =>
-    (parent as unknown as typeof global).mx_rage_logger?.log(logLevel, ...args);
+const onLog = ({ logLevel, args }: LogEvent): void => {
+    if (Array.isArray(args) && args.some((arg) => typeof arg === "string" && arg.includes("conference.destroyed"))) {
+        logger.info("Conference destroyed for all participants, requesting widget removal");
+        meetApi?.dispose();
+        meetApi = undefined;
+        if (widgetApi) {
+            void widgetApi.transport.send(ElementWidgetActions.HangupCall, { removeWidget: true });
+            void widgetApi.setAlwaysOnScreen(false);
+        }
+        closeConference();
+    }
+
+    if (Array.isArray(args)) {
+        globalThis.mx_rage_logger?.log(logLevel, ...args);
+    }
+};

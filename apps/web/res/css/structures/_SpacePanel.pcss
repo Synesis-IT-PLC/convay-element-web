@@ -21,12 +21,12 @@ Please see LICENSE files in the repository root for full details.
     position: relative;
     /* Fix for the blurred avatar-background */
     z-index: 1;
+    display: none !important;
 
     /* For enhanced visibility under contrast control */
     outline: 1px solid transparent;
 
     /* Create another flexbox so the Panel fills the container */
-    display: flex;
     flex-direction: column;
 
     &.collapsed {

@@ -10,35 +10,35 @@ Please see LICENSE files in the repository root for full details.
 import { ClientEvent, type MatrixEvent } from "matrix-js-sdk/src/matrix";
 import { Toast } from "@vector-im/compound-web";
 import React, { type JSX, useState } from "react";
-import UserProfileIcon from "@vector-im/compound-design-tokens/assets/web/icons/user-profile";
+// import UserProfileIcon from "@vector-im/compound-design-tokens/assets/web/icons/user-profile";
 import DevicesIcon from "@vector-im/compound-design-tokens/assets/web/icons/devices";
-import VisibilityOnIcon from "@vector-im/compound-design-tokens/assets/web/icons/visibility-on";
+// import VisibilityOnIcon from "@vector-im/compound-design-tokens/assets/web/icons/visibility-on";
 import NotificationsIcon from "@vector-im/compound-design-tokens/assets/web/icons/notifications";
 import PreferencesIcon from "@vector-im/compound-design-tokens/assets/web/icons/preferences";
 import KeyboardIcon from "@vector-im/compound-design-tokens/assets/web/icons/keyboard";
 import KeyIcon from "@vector-im/compound-design-tokens/assets/web/icons/key";
-import SidebarIcon from "@vector-im/compound-design-tokens/assets/web/icons/sidebar";
+// import SidebarIcon from "@vector-im/compound-design-tokens/assets/web/icons/sidebar";
 import MicOnIcon from "@vector-im/compound-design-tokens/assets/web/icons/mic-on";
 import LockIcon from "@vector-im/compound-design-tokens/assets/web/icons/lock";
-import LabsIcon from "@vector-im/compound-design-tokens/assets/web/icons/labs";
+// import LabsIcon from "@vector-im/compound-design-tokens/assets/web/icons/labs";
 import BlockIcon from "@vector-im/compound-design-tokens/assets/web/icons/block";
-import HelpIcon from "@vector-im/compound-design-tokens/assets/web/icons/help";
+// import HelpIcon from "@vector-im/compound-design-tokens/assets/web/icons/help";
 
 import TabbedView, { Tab, useActiveTabWithDefault } from "../../structures/TabbedView";
 import { _t, _td } from "../../../languageHandler";
-import AccountUserSettingsTab from "../settings/tabs/user/AccountUserSettingsTab";
-import SettingsStore from "../../../settings/SettingsStore";
-import LabsUserSettingsTab, { showLabsFlags } from "../settings/tabs/user/LabsUserSettingsTab";
-import AppearanceUserSettingsTab from "../settings/tabs/user/AppearanceUserSettingsTab";
+// import AccountUserSettingsTab from "../settings/tabs/user/AccountUserSettingsTab";
+// import SettingsStore from "../../../settings/SettingsStore";
+// import LabsUserSettingsTab, { showLabsFlags } from "../settings/tabs/user/LabsUserSettingsTab";
+// import AppearanceUserSettingsTab from "../settings/tabs/user/AppearanceUserSettingsTab";
 import SecurityUserSettingsTab from "../settings/tabs/user/SecurityUserSettingsTab";
 import NotificationUserSettingsTab from "../settings/tabs/user/NotificationUserSettingsTab";
 import PreferencesUserSettingsTab from "../settings/tabs/user/PreferencesUserSettingsTab";
 import VoiceUserSettingsTab from "../settings/tabs/user/VoiceUserSettingsTab";
-import HelpUserSettingsTab from "../settings/tabs/user/HelpUserSettingsTab";
+// import HelpUserSettingsTab from "../settings/tabs/user/HelpUserSettingsTab";
 import MjolnirUserSettingsTab from "../settings/tabs/user/MjolnirUserSettingsTab";
 import { UIFeature } from "../../../settings/UIFeature";
 import BaseDialog from "./BaseDialog";
-import SidebarUserSettingsTab from "../settings/tabs/user/SidebarUserSettingsTab";
+// import SidebarUserSettingsTab from "../settings/tabs/user/SidebarUserSettingsTab";
 import KeyboardUserSettingsTab from "../settings/tabs/user/KeyboardUserSettingsTab";
 import SessionManagerTab from "../settings/tabs/user/SessionManagerTab";
 import { UserTab } from "./UserTab";
@@ -125,15 +125,15 @@ export default function UserSettingsDialog(props: IProps): JSX.Element {
     const getTabs = (): NonEmptyArray<Tab<UserTab>> => {
         const tabs: Tab<UserTab>[] = [];
 
-        tabs.push(
-            new Tab(
-                UserTab.Account,
-                _td("settings|account|title"),
-                <UserProfileIcon />,
-                <AccountUserSettingsTab closeSettingsFn={props.onFinished} />,
-                "UserSettingsGeneral",
-            ),
-        );
+        // tabs.push(
+        //     new Tab(
+        //         UserTab.Account,
+        //         _td("settings|account|title"),
+        //         <UserProfileIcon />,
+        //         <AccountUserSettingsTab closeSettingsFn={props.onFinished} />,
+        //         "UserSettingsGeneral",
+        //     ),
+        // );
         tabs.push(
             new Tab(
                 UserTab.SessionManager,
@@ -143,15 +143,15 @@ export default function UserSettingsDialog(props: IProps): JSX.Element {
                 undefined,
             ),
         );
-        tabs.push(
-            new Tab(
-                UserTab.Appearance,
-                _td("common|appearance"),
-                <VisibilityOnIcon />,
-                <AppearanceUserSettingsTab />,
-                "UserSettingsAppearance",
-            ),
-        );
+        // tabs.push(
+        //     new Tab(
+        //         UserTab.Appearance,
+        //         _td("common|appearance"),
+        //         <VisibilityOnIcon />,
+        //         <AppearanceUserSettingsTab />,
+        //         "UserSettingsAppearance",
+        //     ),
+        // );
         tabs.push(
             new Tab(
                 UserTab.Notifications,
@@ -179,15 +179,15 @@ export default function UserSettingsDialog(props: IProps): JSX.Element {
                 "UserSettingsKeyboard",
             ),
         );
-        tabs.push(
-            new Tab(
-                UserTab.Sidebar,
-                _td("settings|sidebar|title"),
-                <SidebarIcon />,
-                <SidebarUserSettingsTab />,
-                "UserSettingsSidebar",
-            ),
-        );
+        // tabs.push(
+        //     new Tab(
+        //         UserTab.Sidebar,
+        //         _td("settings|sidebar|title"),
+        //         <SidebarIcon />,
+        //         <SidebarUserSettingsTab />,
+        //         "UserSettingsSidebar",
+        //     ),
+        // );
 
         if (voipEnabled) {
             tabs.push(
@@ -222,11 +222,11 @@ export default function UserSettingsDialog(props: IProps): JSX.Element {
             ),
         );
 
-        if (showLabsFlags() || SettingsStore.getFeatureSettingNames().some((k) => SettingsStore.getBetaInfo(k))) {
-            tabs.push(
-                new Tab(UserTab.Labs, _td("common|labs"), <LabsIcon />, <LabsUserSettingsTab />, "UserSettingsLabs"),
-            );
-        }
+        // if (showLabsFlags() || SettingsStore.getFeatureSettingNames().some((k) => SettingsStore.getBetaInfo(k))) {
+        //     tabs.push(
+        //         new Tab(UserTab.Labs, _td("common|labs"), <LabsIcon />, <LabsUserSettingsTab />, "UserSettingsLabs"),
+        //     );
+        // }
         if (mjolnirEnabled) {
             tabs.push(
                 new Tab(
@@ -238,20 +238,24 @@ export default function UserSettingsDialog(props: IProps): JSX.Element {
                 ),
             );
         }
-        tabs.push(
-            new Tab(
-                UserTab.Help,
-                _td("setting|help_about|title"),
-                <HelpIcon />,
-                <HelpUserSettingsTab />,
-                "UserSettingsHelpAbout",
-            ),
-        );
+        // tabs.push(
+        //     new Tab(
+        //         UserTab.Help,
+        //         _td("setting|help_about|title"),
+        //         <HelpIcon />,
+        //         <HelpUserSettingsTab />,
+        //         "UserSettingsHelpAbout",
+        //     ),
+        // );
 
         return tabs as NonEmptyArray<Tab<UserTab>>;
     };
 
-    const [activeTabId, _setActiveTabId] = useActiveTabWithDefault(getTabs(), UserTab.Account, props.initialTabId);
+    const [activeTabId, _setActiveTabId] = useActiveTabWithDefault(
+        getTabs(),
+        UserTab.SessionManager,
+        props.initialTabId,
+    );
     const setActiveTabId = (tabId: UserTab): void => {
         _setActiveTabId(tabId);
         // Clear these so switching away from the tab and back to it will not show the QR code again

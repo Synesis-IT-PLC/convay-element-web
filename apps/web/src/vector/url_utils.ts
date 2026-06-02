@@ -20,6 +20,22 @@ export function parseQsFromFragment(url: Location | URL): { location: string; pa
     // characters which are only URI-encoded once.
     const [main, query] = fragment.split("?", 2);
 
+    // Convay: support logging in via a JWT supplied in the fragment as `#/jwt=<token>` or `#jwt=<token>`.
+    // The token lives in the `main` (location) part rather than as a `?`-delimited query param, so we
+    // detect it before the generic oAuth handling below and surface it as a `jwt` fragment param.
+    const decodedMain = decodeURIComponent(main);
+    if (decodedMain.startsWith("/jwt=") || decodedMain.startsWith("jwt=")) {
+        const raw = decodedMain.startsWith("/jwt=")
+            ? decodedMain.substring("/jwt=".length)
+            : decodedMain.substring("jwt=".length);
+        const params = query ? new URLSearchParams(query) : new URLSearchParams();
+        const jwt = raw.split("/")[0];
+        if (jwt) {
+            params.set("jwt", jwt);
+        }
+        return { location: "/", params };
+    }
+
     // Handle oAuth-style fragment parameters
     if (main.includes("=")) {
         return {
@@ -29,7 +45,7 @@ export function parseQsFromFragment(url: Location | URL): { location: string; pa
     }
 
     return {
-        location: decodeURIComponent(main),
+        location: decodedMain,
         params: query ? new URLSearchParams(query) : undefined,
     };
 }
@@ -77,6 +93,11 @@ const urlParameterConfig = {
     // XXX: Fragment params seemingly relating to 3pid invites, though the code in the area doubts they are ever specified
     guest: {
         keys: ["guest_user_id", "guest_access_token"],
+        location: "fragment",
+    },
+    // Convay: JWT login token, extracted from a `#/jwt=<token>` fragment by parseQsFromFragment above
+    jwt: {
+        keys: ["jwt"],
         location: "fragment",
     },
 } as const satisfies Record<

@@ -49,6 +49,9 @@ import { BugReportEndpointURLLocal } from "../IConfigOptions.ts";
 const TIMEOUT_MS = 16000;
 const logger = rootLogger.getChild("models/Call");
 
+// Recipient Busy or user's IN_CALL_STATUS check
+export const IN_CALL_PRESENCE_STATUS = "io.element.in_call";
+
 // Waits until an event is emitted satisfying the given predicate
 const waitForEvent = async (
     emitter: EventEmitter,
@@ -274,6 +277,11 @@ export abstract class Call extends TypedEventEmitter<CallEvent, CallEventHandler
         this.room.on(RoomEvent.MyMembership, this.onMyMembership);
         window.addEventListener("beforeunload", this.beforeUnload);
         this.connectionState = ConnectionState.Connected;
+
+        // Signal to other users that we are in a call via presence status_msg (best-effort)
+        this.client.setPresence?.({ presence: "online", status_msg: IN_CALL_PRESENCE_STATUS })?.catch((err) => {
+            logger.warn("Failed to set in-call presence:", err);
+        });
     }
 
     /**
@@ -283,6 +291,11 @@ export abstract class Call extends TypedEventEmitter<CallEvent, CallEventHandler
         this.room.off(RoomEvent.MyMembership, this.onMyMembership);
         window.removeEventListener("beforeunload", this.beforeUnload);
         this.connectionState = ConnectionState.Disconnected;
+
+        // Clear in-call presence status_msg (best-effort)
+        this.client.setPresence?.({ presence: "online", status_msg: "available" })?.catch((err) => {
+            logger.warn("Failed to clear in-call presence:", err);
+        });
     }
 
     /**

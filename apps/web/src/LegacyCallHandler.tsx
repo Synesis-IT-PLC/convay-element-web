@@ -54,6 +54,7 @@ import { localNotificationsAreSilenced } from "./utils/notifications";
 import { isNotNull } from "./Typeguards";
 import { BackgroundAudio } from "./audio/BackgroundAudio";
 import { Jitsi } from "./widgets/Jitsi.ts";
+import { IN_CALL_PRESENCE_STATUS } from "./models/Call";
 
 export const PROTOCOL_PSTN = "m.protocol.pstn";
 export const PROTOCOL_PSTN_PREFIXED = "im.vector.protocol.pstn";
@@ -682,6 +683,22 @@ export default class LegacyCallHandler extends TypedEventEmitter<LegacyCallHandl
             });
         } else {
             ToastStore.sharedInstance().dismissToast(toastKey);
+        }
+
+        // Signal in-call status to other users via presence status_msg (IN_CALL_PRESENCE_STATUS)
+        // Required for Checking recipeint status before placing legacy call & condition before showing recipient busy modal
+        const cli = MatrixClientPeg.safeGet();
+        if (status === CallState.Connected) {
+            cli.setPresence?.({ presence: "online", status_msg: IN_CALL_PRESENCE_STATUS })?.catch((err) => {
+                logger.warn("Failed to set in-call presence:", err);
+            });
+        } else if (status === CallState.Ended) {
+            // Only clear if there are no other active calls
+            if (this.getAllActiveCalls().length === 0) {
+                cli.setPresence?.({ presence: "online", status_msg: "available" })?.catch((err) => {
+                    logger.warn("Failed to clear in-call presence:", err);
+                });
+            }
         }
 
         this.emit(LegacyCallHandlerEvent.CallState, mappedRoomId, status);

@@ -50,11 +50,13 @@ describe("RoomListSearchView", () => {
 
     describe("User interactions", () => {
         const onSearchClick = vi.fn();
+        const onSettingsClick = vi.fn();
         const onDialPadClick = vi.fn();
         const onExploreClick = vi.fn();
 
         class TestViewModel extends MockViewModel<RoomListSearchViewSnapshot> implements RoomListSearchViewActions {
             public onSearchClick = onSearchClick;
+            public onSettingsClick = onSettingsClick;
             public onDialPadClick = onDialPadClick;
             public onExploreClick = onExploreClick;
         }

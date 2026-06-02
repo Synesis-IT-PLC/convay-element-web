@@ -21,5 +21,20 @@ Please see LICENSE files in the repository root for full details.
         border: none;
         border-radius: inherit;
         background-color: $call-background;
+        position: relative;
+    }
+
+    .mx_CallView_callDuration {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -90px);
+        pointer-events: none;
+        z-index: 2;
+    }
+
+    .mx_CallView_callDuration .mx_Clock {
+        color: $call-primary-content;
+        font-size: $font-14px;
     }
 }

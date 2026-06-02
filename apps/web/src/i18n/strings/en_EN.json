@@ -615,7 +615,7 @@
         "format_ordered_list": "Numbered list",
         "format_strikethrough": "Strikethrough",
         "format_underline": "Underline",
-        "format_unordered_list": "Bulleted list",
+        "format_unordered_list": "Bullet point",
         "formatting_toolbar_label": "Formatting",
         "link_modal": {
             "link_field_label": "Link",
@@ -3951,6 +3951,8 @@
         "no_permission_conference_description": "You do not have permission to start a conference call in this room",
         "on_hold": "%(name)s on hold",
         "output_devices": "Output devices",
+        "recipient_busy": "Recipient is busy",
+        "recipient_busy_description": "The person you're trying to call is currently on another call. Please try again later.",
         "screenshare_monitor": "Share entire screen",
         "screenshare_title": "Share content",
         "screenshare_window": "Application window",

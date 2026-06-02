@@ -29,3 +29,19 @@ Please see LICENSE files in the repository root for full details.
 .cpd-theme-dark .mx_WelcomePage_logo {
     filter: invert(1);
 }
+
+.mx_AuthPage_modal:has(.mx_Welcome) {
+    margin-top: 140px;
+}
+
+@media only screen and (max-height: 768px) {
+    .mx_AuthPage_modal:has(.mx_Welcome) {
+        margin-top: 120px;
+    }
+}
+
+@media only screen and (max-width: 480px) {
+    .mx_AuthPage_modal:has(.mx_Welcome) {
+        margin-top: 0;
+    }
+}

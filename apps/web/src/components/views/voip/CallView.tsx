@@ -9,13 +9,14 @@ Please see LICENSE files in the repository root for full details.
 import React, { type FC, useContext, useEffect, type AriaRole, useCallback } from "react";
 
 import type { Room } from "matrix-js-sdk/src/matrix";
-import { type Call, CallEvent } from "../../../models/Call";
+import { type Call, CallEvent, ElementCall } from "../../../models/Call";
 import MatrixClientContext from "../../../contexts/MatrixClientContext";
 import AppTile from "../elements/AppTile";
 import { CallStore } from "../../../stores/CallStore";
 import { SdkContextClass } from "../../../contexts/SDKContext";
 import { useTypedEventEmitter } from "../../../hooks/useEventEmitter";
 import { useCall } from "../../../hooks/useCall";
+import { SessionClock } from "../voip/CallDuration";
 
 interface JoinCallViewProps {
     room: Room;
@@ -43,6 +44,13 @@ const JoinCallView: FC<JoinCallViewProps> = ({ room, resizing, call, role, onClo
         await Promise.all(calls.map(async (call) => await call.disconnect()));
     }, []);
 
+    const durationOverlay =
+        call instanceof ElementCall ? (
+            <div className="mx_CallView_callDuration">
+                <SessionClock session={call.session} />
+            </div>
+        ) : null;
+
     return (
         <div className="mx_CallView" role={role}>
             <AppTile
@@ -54,6 +62,7 @@ const JoinCallView: FC<JoinCallViewProps> = ({ room, resizing, call, role, onClo
                 showMenubar={false}
                 pointerEvents={resizing ? "none" : undefined}
                 stickyPromise={disconnectAllOtherCalls}
+                overlay={durationOverlay}
             />
         </div>
     );

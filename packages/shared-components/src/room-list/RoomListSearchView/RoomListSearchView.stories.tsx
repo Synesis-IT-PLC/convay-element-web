@@ -21,12 +21,14 @@ type RoomListSearchProps = RoomListSearchViewSnapshot & RoomListSearchViewAction
 
 const RoomListSearchViewWrapperImpl = ({
     onSearchClick,
+    onSettingsClick,
     onDialPadClick,
     onExploreClick,
     ...rest
 }: RoomListSearchProps): JSX.Element => {
     const vm = useMockedViewModel(rest, {
         onSearchClick,
+        onSettingsClick,
         onDialPadClick,
         onExploreClick,
     });
@@ -43,6 +45,7 @@ const meta = {
         displayDialButton: false,
         searchShortcut: "⌘ K",
         onSearchClick: fn(),
+        onSettingsClick: fn(),
         onDialPadClick: fn(),
         onExploreClick: fn(),
     },

@@ -456,6 +456,11 @@ export class WidgetMessaging extends TypedEventEmitter<WidgetMessagingEvent, Wid
                     });
                 }
                 this.widgetApi?.transport.reply(ev.detail, <IWidgetApiRequestEmptyData>{});
+
+                if (ev.detail.data?.removeWidget && this.roomId) {
+                    logger.info(`Removing Jitsi widget ${this.widget.id} from room ${this.roomId}`);
+                    WidgetUtils.setRoomWidget(this.client, this.roomId, this.widget.id);
+                }
             });
         }
 

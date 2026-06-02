@@ -8,6 +8,7 @@ Please see LICENSE files in the repository root for full details.
 
 import React, { type FC, useState, useEffect, memo } from "react";
 import { type MatrixRTCSession } from "matrix-js-sdk/src/matrixrtc";
+import { Clock } from "@element-hq/web-shared-components";
 
 import { formatPreciseDuration } from "../../../DateUtils";
 
@@ -45,4 +46,26 @@ export const SessionDuration: FC<SessionDurationProps> = ({ session }) => {
     // This implies that the displayed call duration will also update consequently.
     const createdTs = session?.getOldestMembership()?.createdTs();
     return createdTs ? <CallDuration delta={now - createdTs} /> : <CallDuration delta={0} />;
+};
+
+interface SessionClockProps {
+    session: MatrixRTCSession | undefined;
+}
+
+/**
+ * A call duration counter that renders a clock component, given a matrixRTC session.
+ */
+export const SessionClock: FC<SessionClockProps> = ({ session }) => {
+    const [now, setNow] = useState(() => Date.now());
+
+    useEffect(() => {
+        const timer = window.setInterval(() => setNow(Date.now()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const createdTs = session?.getOldestMembership()?.createdTs();
+    if (!createdTs || now <= createdTs) return null;
+
+    const seconds = Math.floor((now - createdTs) / 1000);
+    return <Clock seconds={seconds} aria-live="off" />;
 };

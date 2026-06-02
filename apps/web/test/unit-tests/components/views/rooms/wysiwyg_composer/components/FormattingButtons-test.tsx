@@ -49,7 +49,7 @@ const testCases: Record<
     codeBlock: { label: "Code block", mockFormatFn: mockWysiwyg.inlineCode },
     link: { label: "Link", mockFormatFn: openLinkModalSpy },
     orderedList: { label: "Numbered list", mockFormatFn: mockWysiwyg.orderedList },
-    unorderedList: { label: "Bulleted list", mockFormatFn: mockWysiwyg.unorderedList },
+    unorderedList: { label: "Bullet point", mockFormatFn: mockWysiwyg.unorderedList },
     quote: { label: "Quote", mockFormatFn: mockWysiwyg.quote },
 };
 

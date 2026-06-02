@@ -65,6 +65,9 @@ import RightPanelStore from "../../../stores/right-panel/RightPanelStore.ts";
 import { RightPanelPhases } from "../../../stores/right-panel/RightPanelStorePhases.ts";
 import { WidgetContextMenu } from "../../../viewmodels/room/right-panel/WidgetContextMenuViewModel.tsx";
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const convayIcon = require("../../../../res/vector-icons/convay.png");
+
 // Note that there is advice saying allow-scripts shouldn't be used with allow-same-origin
 // because that would allow the iframe to programmatically remove the sandbox attribute, but
 // this would only be for content hosted on the same origin as the element client: anything
@@ -637,16 +640,24 @@ export default class AppTile extends React.Component<IProps, IState> {
     }
 
     private getTileTitle(): JSX.Element {
-        const name = this.formatAppTileName();
+        const isGroupCall = WidgetType.JITSI.matches(this.props.app.type);
+        const name = isGroupCall ? "Convay" : this.formatAppTileName();
         const titleSpacer = <span>&nbsp;-&nbsp;</span>;
         let title = "";
         if (this.props.widgetPageTitle && this.props.widgetPageTitle !== this.formatAppTileName()) {
             title = this.props.widgetPageTitle;
         }
 
+        // For Group Call, use favicon instead of WidgetAvatar
+        const avatar = isGroupCall ? (
+            <img src={convayIcon} alt="" style={{ width: "20px", height: "20px", borderRadius: "50%" }} />
+        ) : (
+            <WidgetAvatar app={this.props.app} size="20px" />
+        );
+
         return (
             <span>
-                <WidgetAvatar app={this.props.app} size="20px" />
+                {avatar}
                 <h1>{name}</h1>
                 <span>
                     {title ? titleSpacer : ""}

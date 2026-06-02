@@ -133,6 +133,11 @@ export interface IConfigOptions {
     };
 
     logout_redirect_url?: string;
+    auth_pages_redirect_url?: string;
+    auth_signin_url?: string;
+    auth_signup_url?: string;
+    jwt_validate_url?: string;
+    jwt_failure_redirect_url?: string;
 
     sso_redirect_options?: ISsoRedirectOptions;
 

@@ -45,6 +45,8 @@ describe("VideoFeed", () => {
 
         const mockCall = {
             room: new Room("!room:example.com", client, client.getSafeUserId()),
+            on: jest.fn(),
+            removeListener: jest.fn(),
         };
 
         const feed = {

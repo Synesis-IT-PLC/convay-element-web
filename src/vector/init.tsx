@@ -26,7 +26,7 @@ import PWAPlatform from "./platform/PWAPlatform";
 import WebPlatform from "./platform/WebPlatform";
 import { initRageshake, initRageshakeStore } from "./rageshakesetup";
 import { ModuleApi } from "../modules/Api.ts";
-import { applyEnvFavicon } from "../utils/applyEnvFavicon";
+import { applyEnvBranding } from "../utils/applyEnvBranding";
 
 export const rageshakePromise = initRageshake();
 
@@ -59,7 +59,7 @@ export async function loadConfig(): Promise<void> {
     const platformConfig = await PlatformPeg.get()?.getConfig();
     if (platformConfig) {
         SdkConfig.put(platformConfig);
-        applyEnvFavicon();
+        applyEnvBranding();
     } else {
         SdkConfig.reset();
     }

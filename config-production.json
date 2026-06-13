@@ -23,6 +23,7 @@
         "https://scalar-staging.vector.im/_matrix/integrations/v1",
         "https://scalar-staging.vector.im/api"
     ],
+    "permalink_prefix": "https://message.convay.com",
     "default_widget_container_height": 280,
     "default_country_code": "GB",
     "show_labs_settings": false,
@@ -50,6 +51,7 @@
         "use_exclusively": true
     },
     "branding": {
+        "og_image_url": "vector-icons/520.png",
         "auth_header_logo_url": "vector-icons/520.png",
         "welcomeBackgroundUrl": "themes/convay_auth_bg.png"
     },

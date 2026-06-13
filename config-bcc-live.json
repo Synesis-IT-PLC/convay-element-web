@@ -15,7 +15,6 @@
     "force_verification": false,
     "env": "bcc-live",
     "brand": "Chat",
-    "permalink_prefix": "https://message.bcc.gov.bd",
     "integrations_ui_url": "https://scalar.vector.im/",
     "integrations_rest_url": "https://scalar.vector.im/api",
     "integrations_widgets_urls": [

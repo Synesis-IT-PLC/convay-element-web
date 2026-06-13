@@ -50,6 +50,7 @@ export interface IConfigOptions {
     branding?: {
         welcome_background_url?: string | string[]; // chosen at random if array
         auth_header_logo_url?: string;
+        og_image_url?: string;
         auth_footer_links?: { text: string; url: string }[];
     };
 

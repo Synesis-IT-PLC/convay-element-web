@@ -24,8 +24,21 @@ const { RetryChunkLoadPlugin } = require("webpack-retry-chunk-load-plugin");
 // CSP_EXTRA_SOURCE: specifies a URL which should be appended to each CSP directive which uses 'self',
 //   this can be helpful if your deployment has redirects for old bundles, such as develop.element.io.
 
+const fs = require("fs");
+
 dotenv.config();
 let ogImageUrl = process.env.RIOT_OG_IMAGE_URL;
+
+// Fall back to branding.og_image_url from the active config.json
+if (!ogImageUrl && fs.existsSync("./config.json")) {
+    try {
+        const cfg = JSON.parse(fs.readFileSync("./config.json", "utf8"));
+        ogImageUrl = cfg?.branding?.og_image_url;
+    } catch (e) {
+        console.warn("Could not read og_image_url from config.json:", e.message);
+    }
+}
+
 if (!ogImageUrl) ogImageUrl = "/vector-icons/520.png";
 
 const cssThemes = {

@@ -50,7 +50,8 @@
         "use_exclusively": true
     },
     "branding": {
-        "auth_header_logo_url": "vector-icons/520.png",
+        "og_image_url": "vector-icons/520_uct.png",
+        "auth_header_logo_url": "vector-icons/520_uct.png",
         "welcomeBackgroundUrl": "themes/convay_auth_bg.png"
     },
     "livekit": {

@@ -50,6 +50,7 @@
         "use_exclusively": true
     },
     "branding": {
+        "og_image_url": "vector-icons/520.png",
         "auth_header_logo_url": "vector-icons/520.png",
         "welcomeBackgroundUrl": "themes/convay_auth_bg.png"
     },

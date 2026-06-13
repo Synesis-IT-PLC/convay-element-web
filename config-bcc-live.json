@@ -13,6 +13,7 @@
     "disable_login_language_selector": false,
     "disable_3pid_login": false,
     "force_verification": false,
+    "env": "bcc-live",
     "brand": "Chat",
     "permalink_prefix": "https://message.bcc.gov.bd",
     "integrations_ui_url": "https://scalar.vector.im/",
@@ -23,6 +24,7 @@
         "https://scalar-staging.vector.im/_matrix/integrations/v1",
         "https://scalar-staging.vector.im/api"
     ],
+    "permalink_prefix": "https://message.bcc.gov.bd",
     "default_widget_container_height": 280,
     "default_country_code": "GB",
     "show_labs_settings": false,

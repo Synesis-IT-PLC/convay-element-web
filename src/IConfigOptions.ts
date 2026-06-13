@@ -45,6 +45,7 @@ export interface IConfigOptions {
     disable_login_language_selector?: boolean;
     disable_3pid_login?: boolean;
 
+    env?: string;
     brand: string;
     branding?: {
         welcome_background_url?: string | string[]; // chosen at random if array

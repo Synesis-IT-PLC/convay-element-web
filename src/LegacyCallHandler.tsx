@@ -465,6 +465,16 @@ export default class LegacyCallHandler extends TypedEventEmitter<LegacyCallHandl
             if (isNotNull(mappedRoomId)) {
                 this.removeCallForRoom(mappedRoomId);
             }
+
+            // Clear in-call presence when the remote party hangs up.
+            // State(Ended), and removing the call from the map causes
+            // onCallStateChanged to skip via matchesCallForThisRoom.
+            if (this.getAllActiveCalls().length === 0) {
+                const cli = MatrixClientPeg.safeGet();
+                cli.setPresence({ presence: "online", status_msg: "available" }).catch((err) => {
+                    logger.warn("Failed to clear in-call presence on hangup:", err);
+                });
+            }
         });
         call.on(CallEvent.State, (newState: CallState, oldState: CallState) => {
             this.onCallStateChanged(newState, oldState, call);
@@ -523,7 +533,24 @@ export default class LegacyCallHandler extends TypedEventEmitter<LegacyCallHandl
 
     private onCallStateChanged = (newState: CallState, oldState: CallState | null, call: MatrixCall): void => {
         const mappedRoomId = this.roomIdForCall(call);
-        if (!mappedRoomId || !this.matchesCallForThisRoom(call)) return;
+        if (!mappedRoomId) return;
+
+        // Always clear presence when a call ends, even if the call was already
+        // removed from the map by the Hangup handler (which would cause
+        // matchesCallForThisRoom to return false and skip setCallState).
+        if (newState === CallState.Ended && this.getAllActiveCalls().length === 0) {
+            const cli = MatrixClientPeg.safeGet();
+            const clearPresence = (): void => {
+                cli.setPresence({ presence: "online", status_msg: "available" }).catch((err) => {
+                    logger.warn("Failed to clear in-call presence:", err);
+                });
+            };
+            clearPresence();
+            // Retry after a delay to improve reliability of presence propagation
+            setTimeout(clearPresence, 3000);
+        }
+
+        if (!this.matchesCallForThisRoom(call)) return;
 
         this.setCallState(call, newState);
         // XXX: this is used by the IPC into Electron to keep device awake

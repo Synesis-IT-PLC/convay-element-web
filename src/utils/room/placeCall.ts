@@ -15,27 +15,27 @@ import defaultDispatcher from "../../dispatcher/dispatcher";
 import { type ViewRoomPayload } from "../../dispatcher/payloads/ViewRoomPayload";
 import { Action } from "../../dispatcher/actions";
 import PosthogTrackers from "../../PosthogTrackers";
-import DMRoomMap from "../DMRoomMap";
-import Modal from "../../Modal";
-import ErrorDialog from "../../components/views/dialogs/ErrorDialog";
-import { _t } from "../../languageHandler";
-import { IN_CALL_PRESENCE_STATUS } from "../../models/Call";
+// import DMRoomMap from "../DMRoomMap";
+// import Modal from "../../Modal";
+// import ErrorDialog from "../../components/views/dialogs/ErrorDialog";
+// import { _t } from "../../languageHandler";
+// import { IN_CALL_PRESENCE_STATUS } from "../../models/Call";
 
 
-// Check if recipient's presence status_msg indicates they are in a call
-function isDmRecipientBusy(room: Room): boolean {
-    const dmUserId = DMRoomMap.shared().getUserIdForRoomId(room.roomId);
-    if (!dmUserId) return false;
+// // Check if recipient's presence status_msg indicates they are in a call
+// function isDmRecipientBusy(room: Room): boolean {
+//     const dmUserId = DMRoomMap.shared().getUserIdForRoomId(room.roomId);
+//     if (!dmUserId) return false;
 
-    const client = room.client;
+//     const client = room.client;
 
-    const user = client.getUser(dmUserId);
-    if (user?.presenceStatusMsg === IN_CALL_PRESENCE_STATUS) {
-        return true;
-    }
+//     const user = client.getUser(dmUserId);
+//     if (user?.presenceStatusMsg === IN_CALL_PRESENCE_STATUS) {
+//         return true;
+//     }
 
-    return false;
-}
+//     return false;
+// }
 
 /**
  * Helper to place a call in a room that works with all the legacy modes
@@ -55,13 +55,13 @@ export const placeCall = async (
     PosthogTrackers.trackInteraction(analyticsName);
 
     //if the recipient is busy modal
-    if (isDmRecipientBusy(room)) {
-        Modal.createDialog(ErrorDialog, {
-            title: _t("voip|recipient_busy"),
-            description: _t("voip|recipient_busy_description"),
-        });
-        return;
-    }
+    // if (isDmRecipientBusy(room)) {
+    //     Modal.createDialog(ErrorDialog, {
+    //         title: _t("voip|recipient_busy"),
+    //         description: _t("voip|recipient_busy_description"),
+    //     });
+    //     return;
+    // }
 
     if (platformCallType == PlatformCallType.LegacyCall || platformCallType == PlatformCallType.JitsiCall) {
         await LegacyCallHandler.instance.placeCall(room.roomId, callType);

@@ -49,7 +49,7 @@ const TIMEOUT_MS = 16000;
 const logger = rootLogger.getChild("models/Call");
 
 // Recipient Busy or user's IN_CALL_STATUS check
-export const IN_CALL_PRESENCE_STATUS = "io.element.in_call";
+// export const IN_CALL_PRESENCE_STATUS = "io.element.in_call";
 
 // Waits until an event is emitted satisfying the given predicate
 const waitForEvent = async (
@@ -277,9 +277,9 @@ export abstract class Call extends TypedEventEmitter<CallEvent, CallEventHandler
         this.connectionState = ConnectionState.Connected;
 
         // Signal to other users that we are in a call via presence status_msg
-        this.client.setPresence({ presence: "online", status_msg: IN_CALL_PRESENCE_STATUS }).catch((err) => {
-            logger.warn("Failed to set in-call presence:", err);
-        });
+        // this.client.setPresence({ presence: "online", status_msg: IN_CALL_PRESENCE_STATUS }).catch((err) => {
+        //     logger.warn("Failed to set in-call presence:", err);
+        // });
     }
 
     /**
@@ -291,9 +291,9 @@ export abstract class Call extends TypedEventEmitter<CallEvent, CallEventHandler
         this.connectionState = ConnectionState.Disconnected;
 
         // Clear in-call presence status_msg
-        this.client.setPresence({ presence: "online", status_msg: "available" }).catch((err) => {
-            logger.warn("Failed to clear in-call presence:", err);
-        });
+        // this.client.setPresence({ presence: "online", status_msg: "available" }).catch((err) => {
+        //     logger.warn("Failed to clear in-call presence:", err);
+        // });
     }
 
     /**

@@ -922,6 +922,7 @@ export class ElementCall extends Call {
             this.onCallEncryptionSettingsChange.bind(this),
         );
         this.updateParticipants();
+        this.callType = this.resolveCallTypeFromSession();
     }
 
     public static get(room: Room, voiceOnly?: boolean): ElementCall | null {
@@ -1008,9 +1009,21 @@ export class ElementCall extends Call {
         if (this.session.memberships.length === 0 && !this.presented && !this.room.isCallRoom()) this.destroy();
     };
 
+    private resolveCallTypeFromSession(): CallType {
+        const consensus = this.session.getConsensusCallIntent();
+        if (consensus === "audio") return CallType.Voice;
+        if (consensus === "video") return CallType.Video;
+
+        const initiatorIntent = this.session.getOldestMembership()?.callIntent;
+        if (initiatorIntent === "audio") return CallType.Voice;
+        if (initiatorIntent === "video") return CallType.Video;
+
+        return CallType.Video;
+    }
+
     private readonly onMembershipChanged = (): void => {
         this.updateParticipants();
-        this.callType = this.session.getConsensusCallIntent() === "audio" ? CallType.Voice : CallType.Video;
+        this.callType = this.resolveCallTypeFromSession();
     };
 
     private updateParticipants(): void {

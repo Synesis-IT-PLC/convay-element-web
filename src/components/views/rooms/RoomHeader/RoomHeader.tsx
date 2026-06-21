@@ -97,6 +97,17 @@ function RoomHeaderButtons({
         [callOptions, voiceCallClick],
     );
 
+    const joinClick = useCallback(
+        (ev: React.MouseEvent) => {
+            if (activeCallSessionType === CallType.Voice) {
+                voiceCallClick(ev, callOptions[0]);
+            } else {
+                videoCallClick(ev, callOptions[0]);
+            }
+        },
+        [activeCallSessionType, callOptions, voiceCallClick, videoCallClick],
+    );
+
     const toggleCallButton = (
         <Tooltip label={isViewingCall ? _t("voip|minimise_call") : _t("voip|maximise_call")}>
             <IconButton onClick={toggleCall}>
@@ -114,7 +125,7 @@ function RoomHeaderButtons({
         >
             <Button
                 size="sm"
-                onClick={videoClick}
+                onClick={joinClick}
                 // If we know this is a voice session, show the voice call. All other kinds of call are video calls.
                 Icon={activeCallSessionType === CallType.Voice ? VoiceCallIcon : VideoCallIcon}
                 className="mx_RoomHeader_join_button"

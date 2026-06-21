@@ -164,8 +164,13 @@ export function useRoomListItemViewModel(room: Room): RoomListItemViewState {
         });
     }, [room]);
 
-    const [callType, setCallType] = useState<CallType>(CallType.Video);
+    const [callType, setCallType] = useState<CallType>(() => call?.callType ?? CallType.Video);
     useTypedEventEmitter(call ?? undefined, CallEvent.CallTypeChanged, setCallType);
+    useEffect(() => {
+        if (call) {
+            setCallType(call.callType);
+        }
+    }, [call]);
 
     // Resolve the effective call type: legacy call type takes precedence if there is one
     const effectiveCallType = isLegacyCallActive ? legacyCallType : call ? callType : undefined;

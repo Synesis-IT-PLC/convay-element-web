@@ -200,9 +200,13 @@ module.exports = (env, argv) => {
                           // Already minified and includes an auto-generated license comment
                           // that the plugin would otherwise pointlessly extract into a separate
                           // file. We add the actual license using CopyWebpackPlugin below.
-                          exclude: "jitsi_external_api.min.js",
+                          // Element Call is pre-minified by Vite and uses Unicode identifiers
+                          // that Terser cannot re-parse.
+                          exclude: [/jitsi_external_api\.min\.js/, /widgets\/element-call/],
                       }),
-                      new CssMinimizerPlugin(),
+                      new CssMinimizerPlugin({
+                          exclude: /widgets\/element-call/,
+                      }),
                   ]
                 : [],
 

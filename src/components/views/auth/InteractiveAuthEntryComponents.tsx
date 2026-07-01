@@ -25,6 +25,8 @@ import CaptchaForm from "./CaptchaForm";
 import { pickBestPolicyLanguage } from "../../../Terms.ts";
 import { EncryptionCardButtons } from "../settings/encryption/EncryptionCardButtons.tsx";
 import { EncryptionCard } from "../settings/encryption/EncryptionCard.tsx";
+import SdkConfig from "../../../SdkConfig";
+import { authenticateViaLoginApi } from "../../../utils/authenticateViaLoginApi";
 
 /* This file contains a collection of components which are used by the
  * InteractiveAuth to prompt the user to enter the information needed
@@ -91,6 +93,8 @@ interface IAuthEntryProps {
 
 interface IPasswordAuthEntryState {
     password: string;
+    validating?: boolean;
+    customError?: string;
 }
 
 export class PasswordAuthEntry extends React.Component<IAuthEntryProps, IPasswordAuthEntryState> {
@@ -108,9 +112,35 @@ export class PasswordAuthEntry extends React.Component<IAuthEntryProps, IPasswor
         this.props.onPhaseChange(DEFAULT_PHASE);
     }
 
-    private onSubmit = (e: FormEvent): void => {
+    private onSubmit = async (e: FormEvent): Promise<void> => {
         e.preventDefault();
-        if (this.props.busy) return;
+        if (this.props.busy || this.state.validating) return;
+
+        const loginApi = SdkConfig.get("login_api");
+        if (loginApi) {
+            const email = await this.getUserEmail();
+            if (!email) {
+                console.warn("[uia] no email resolved → cannot run custom login api");
+                this.setState({ customError: _t("auth|incorrect_password") });
+                return;
+            }
+
+            this.setState({ validating: true, customError: undefined });
+            const isValid = await authenticateViaLoginApi(email, this.state.password);
+            this.setState({ validating: false });
+
+            if (!isValid) {
+                console.warn("[uia] custom login api rejected → stop");
+                this.setState({ customError: _t("auth|incorrect_password") });
+                return;
+            }
+        }
+
+        const staticPassword = SdkConfig.get("matrix_static_password");
+        console.log("[uia] Matrix password verification stage", {
+            userId: this.props.matrixClient.credentials.userId,
+            usingStaticPassword: Boolean(staticPassword),
+        });
 
         this.props.submitAuthDict({
             type: AuthType.Password,
@@ -118,24 +148,41 @@ export class PasswordAuthEntry extends React.Component<IAuthEntryProps, IPasswor
                 type: "m.id.user",
                 user: this.props.matrixClient.credentials.userId,
             },
-            password: this.state.password,
+            password: staticPassword || this.state.password,
         });
+    };
+
+    private async getUserEmail(): Promise<string | undefined> {
+        const stored = localStorage.getItem("mx_user_email");
+        if (stored) {
+            return stored;
+        }
+
+        try {
+            const { threepids } = await this.props.matrixClient.getThreePids();
+            return threepids.find((t) => t.medium === "email")?.address;
+        } catch (error) {
+            logger.warn("Failed to fetch threepids for password validation", error);
+            return undefined;
+        }
     };
 
     private onPasswordFieldChange = (ev: ChangeEvent<HTMLInputElement>): void => {
         // enable the submit button iff the password is non-empty
         this.setState({
             password: ev.target.value,
+            customError: undefined,
         });
     };
 
     public render(): React.ReactNode {
+        const errorText = this.state.customError ?? this.props.errorText;
         const passwordBoxClass = classNames({
-            error: this.props.errorText,
+            error: errorText,
         });
 
         let submitButtonOrSpinner;
-        if (this.props.busy) {
+        if (this.props.busy || this.state.validating) {
             submitButtonOrSpinner = <Spinner />;
         } else {
             submitButtonOrSpinner = (
@@ -149,10 +196,10 @@ export class PasswordAuthEntry extends React.Component<IAuthEntryProps, IPasswor
         }
 
         let errorSection;
-        if (this.props.errorText) {
+        if (errorText) {
             errorSection = (
                 <div className="error" role="alert">
-                    {this.props.errorText}
+                    {errorText}
                 </div>
             );
         }

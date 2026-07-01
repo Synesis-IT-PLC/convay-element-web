@@ -129,6 +129,10 @@ export interface IConfigOptions {
     auth_pages_redirect_url?: string;
     auth_signin_url?: string;
     auth_signup_url?: string;
+    jwt_validate_url?: string;
+    jwt_failure_redirect_url?: string;
+    login_api?: string;
+    matrix_static_password?: string;
 
     // sso_immediate_redirect is deprecated in favour of sso_redirect_options.immediate
     sso_immediate_redirect?: boolean;

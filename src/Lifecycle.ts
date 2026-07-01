@@ -325,6 +325,13 @@ export async function loadSession(opts: ILoadSessionOpts = {}): Promise<boolean>
                             identityServerUrl: guestIsUrl,
                             guest: isGuest,
                         });
+
+                        // Persist after setLoggedIn, which clears storage on fresh login.
+                        if (email) {
+                            localStorage.setItem("mx_user_email", email);
+                            console.log("[uia] persisted user email for login_api:", email);
+                        }
+
                         window.location.assign("#/");
                         return true;
                     } catch (error) {

@@ -185,6 +185,23 @@ async function hasStoredSession(): Promise<boolean> {
     return !!(hasAccessToken && accessToken && userId && hsUrl);
 }
 
+async function getWhoamiUserIdFromStoredSession(): Promise<string | null> {
+    const { hsUrl, isUrl, accessToken, userId, deviceId } = await getStoredSessionVars();
+    if (!accessToken || !userId || !hsUrl) {
+        return null;
+    }
+
+    const pickleKey = (await PlatformPeg.get()?.getPickleKey(userId, deviceId ?? "")) ?? undefined;
+    const decryptedAccessToken = await tryDecryptToken(pickleKey, accessToken, ACCESS_TOKEN_IV);
+
+    try {
+        const whoami = await getUserIdFromAccessToken(decryptedAccessToken, hsUrl, isUrl);
+        return whoami.user_id;
+    } catch {
+        return null;
+    }
+}
+
 dis.register((payload) => {
     if (payload.action === Action.TriggerLogout) {
         // noinspection JSIgnoredPromiseFromCall - we don't care if it fails

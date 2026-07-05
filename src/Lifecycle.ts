@@ -372,48 +372,54 @@ export async function loadSession(opts: ILoadSessionOpts = {}): Promise<boolean>
             if (!accessToken) {
                 logger.warn("JWT login requested but payload has no access_token");
             } else {
-                const email =
-                    (payload?.data?.user_email as string | undefined) ??
-                    (payload?.user_email as string | undefined) ??
-                    (fragmentQueryParams.email as string | undefined) ??
-                    (fragmentQueryParams.user_email as string | undefined);
-                const password =
-                    (fragmentQueryParams.password as string | undefined) ??
-                    (fragmentQueryParams.user_password as string | undefined);
-
-                const isValid = await validateJwtViaApi(jwtParam, email, password);
-                if (!isValid) {
-                    await handleJwtValidationFailure();
-                    return false;
-                }
-
                 const homeserverUrl = resolveJwtHomeserverUrl(payload, guestHsUrl);
                 if (!homeserverUrl) {
                     logger.warn("JWT login requested but no homeserver URL could be determined");
                 } else {
+                    let expectedUserId = payload.user_id;
                     try {
-                        const { user_id: userId, device_id: deviceId, is_guest: isGuest } =
-                            await getUserIdFromAccessToken(accessToken, homeserverUrl, guestIsUrl);
-                        await setLoggedIn({
-                            userId,
-                            deviceId,
-                            accessToken,
-                            refreshToken: payload?.refresh_token,
-                            homeserverUrl,
-                            identityServerUrl: guestIsUrl,
-                            guest: isGuest,
-                        });
-
-                        // Persist after setLoggedIn, which clears storage on fresh login.
-                        if (email) {
-                            localStorage.setItem("mx_user_email", email);
-                            console.log("[uia] persisted user email for login_api:", email);
-                        }
-
-                        window.location.assign("#/");
-                        return true;
+                        const jwtWhoami = await getUserIdFromAccessToken(accessToken, homeserverUrl, guestIsUrl);
+                        expectedUserId = jwtWhoami.user_id;
                     } catch (error) {
-                        logger.error("Failed to log in via JWT fragment", error);
+                        logger.warn("Could not resolve JWT user via whoami", error);
+                    }
+
+                    if (expectedUserId && (await hasStoredSession())) {
+                        const { hsUrl: storedHsUrl } = await getStoredSessionVars();
+                        const storedUserId = await getWhoamiUserIdFromStoredSession();
+                        const homeserversMatch =
+                            !!storedHsUrl &&
+                            normalizeHomeserverUrl(storedHsUrl) === normalizeHomeserverUrl(homeserverUrl);
+
+                        if (storedUserId === expectedUserId && homeserversMatch) {
+                            logger.log(
+                                `JWT session matches stored session (${expectedUserId} @ ${homeserverUrl}), restoring`,
+                            );
+                            const restored = await restoreSessionFromStorage({
+                                ignoreGuest: Boolean(opts.ignoreGuest),
+                            });
+                            if (restored) {
+                                window.location.assign("#/");
+                                return true;
+                            }
+                        } else {
+                            logger.log(
+                                `JWT session mismatch (user: ${expectedUserId} vs ${storedUserId}, ` +
+                                    `hs: ${homeserverUrl} vs ${storedHsUrl}), performing full JWT login`,
+                            );
+                        }
+                    }
+
+                    const jwtLoginSuccess = await performFullJwtLogin(
+                        jwtParam,
+                        payload,
+                        accessToken,
+                        homeserverUrl,
+                        guestIsUrl,
+                        fragmentQueryParams,
+                    );
+                    if (jwtLoginSuccess) {
+                        return true;
                     }
                 }
             }

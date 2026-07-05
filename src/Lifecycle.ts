@@ -141,6 +141,10 @@ function resolveJwtHomeserverUrl(payload: JwtLoginPayload, fallback?: string): s
     return fallback;
 }
 
+function normalizeHomeserverUrl(url: string): string {
+    return url.replace(/\/+$/, "");
+}
+
 async function validateJwtViaApi(jwt: string, email?: string, password?: string): Promise<boolean> {
     try {
         const validateUrl = DEFAULT_JWT_VALIDATE_URL;

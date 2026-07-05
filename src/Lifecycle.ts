@@ -202,6 +202,58 @@ async function getWhoamiUserIdFromStoredSession(): Promise<string | null> {
     }
 }
 
+async function performFullJwtLogin(
+    jwtParam: string,
+    payload: JwtLoginPayload,
+    accessToken: string,
+    homeserverUrl: string,
+    guestIsUrl: string | undefined,
+    fragmentQueryParams: QueryDict,
+): Promise<boolean> {
+    const email =
+        (payload?.data?.user_email as string | undefined) ??
+        (payload?.user_email as string | undefined) ??
+        (fragmentQueryParams.email as string | undefined) ??
+        (fragmentQueryParams.user_email as string | undefined);
+    const password =
+        (fragmentQueryParams.password as string | undefined) ??
+        (fragmentQueryParams.user_password as string | undefined);
+
+    const isValid = await validateJwtViaApi(jwtParam, email, password);
+    if (!isValid) {
+        await handleJwtValidationFailure();
+        return false;
+    }
+
+    try {
+        const { user_id: userId, device_id: deviceId, is_guest: isGuest } = await getUserIdFromAccessToken(
+            accessToken,
+            homeserverUrl,
+            guestIsUrl,
+        );
+        await setLoggedIn({
+            userId,
+            deviceId,
+            accessToken,
+            refreshToken: payload?.refresh_token,
+            homeserverUrl,
+            identityServerUrl: guestIsUrl,
+            guest: isGuest,
+        });
+
+        if (email) {
+            localStorage.setItem("mx_user_email", email);
+            console.log("[uia] persisted user email for login_api:", email);
+        }
+
+        window.location.assign("#/");
+        return true;
+    } catch (error) {
+        logger.error("Failed to log in via JWT fragment", error);
+        return false;
+    }
+}
+
 dis.register((payload) => {
     if (payload.action === Action.TriggerLogout) {
         // noinspection JSIgnoredPromiseFromCall - we don't care if it fails

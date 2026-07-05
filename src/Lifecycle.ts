@@ -180,6 +180,11 @@ async function handleJwtValidationFailure(): Promise<void> {
     window.location.assign(redirectUrl);
 }
 
+async function hasStoredSession(): Promise<boolean> {
+    const { hsUrl, hasAccessToken, accessToken, userId } = await getStoredSessionVars();
+    return !!(hasAccessToken && accessToken && userId && hsUrl);
+}
+
 dis.register((payload) => {
     if (payload.action === Action.TriggerLogout) {
         // noinspection JSIgnoredPromiseFromCall - we don't care if it fails

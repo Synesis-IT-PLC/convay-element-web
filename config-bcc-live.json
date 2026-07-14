@@ -5,13 +5,13 @@
             "server_name": "chatserver.bcc.gov.bd"
         },
         "m.identity_server": {
-            "base_url": "https://vector.im"
+            "base_url": "https://sydent.bcc.gov.bd"
         }
     },
     "disable_custom_urls": false,
     "disable_guests": false,
     "disable_login_language_selector": false,
-    "disable_3pid_login": false,
+    "disable_3pid_login": true,
     "force_verification": false,
     "env": "bcc-live",
     "brand": "Chat",

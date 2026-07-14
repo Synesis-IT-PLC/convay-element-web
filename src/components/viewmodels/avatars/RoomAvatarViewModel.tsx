@@ -16,6 +16,7 @@ export enum AvatarBadgeDecoration {
     LowPriority = "LowPriority",
     VideoRoom = "VideoRoom",
     PublicRoom = "PublicRoom",
+    PrivateRoom = "PrivateRoom",
     Presence = "Presence",
 }
 
@@ -52,6 +53,9 @@ export function useRoomAvatarViewModel(room: Room): RoomAvatarViewState {
         badgeDecoration = AvatarBadgeDecoration.PublicRoom;
     } else if (presence) {
         badgeDecoration = AvatarBadgeDecoration.Presence;
+    } else if (!roomMember) {
+        // Non-DM private room — show lock indicator (similar to public globe)
+        badgeDecoration = AvatarBadgeDecoration.PrivateRoom;
     }
 
     return { badgeDecoration, presence };

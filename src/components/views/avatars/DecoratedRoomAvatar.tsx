@@ -19,7 +19,7 @@ import {
 } from "matrix-js-sdk/src/matrix";
 import { UnstableValue } from "matrix-js-sdk/src/NamespacedValue";
 import { Tooltip } from "@vector-im/compound-web";
-import { PublicIcon } from "@vector-im/compound-design-tokens/assets/web/icons";
+import { LockSolidIcon, PublicIcon } from "@vector-im/compound-design-tokens/assets/web/icons";
 
 import RoomAvatar from "./RoomAvatar";
 import NotificationBadge from "../rooms/NotificationBadge";
@@ -59,6 +59,7 @@ enum Icon {
     // Note: the names here are used in CSS class names
     None = "NONE", // ... except this one
     Globe = "GLOBE",
+    Lock = "LOCK",
     PresenceOnline = "ONLINE",
     PresenceAway = "AWAY",
     PresenceOffline = "OFFLINE",
@@ -69,6 +70,8 @@ function tooltipText(variant: Icon): string | undefined {
     switch (variant) {
         case Icon.Globe:
             return _t("room|header|room_is_public");
+        case Icon.Lock:
+            return _t("room|header|room_is_private");
         case Icon.PresenceOnline:
             return _t("presence|online");
         case Icon.PresenceAway:
@@ -175,7 +178,7 @@ export default class DecoratedRoomAvatar extends React.PureComponent<IProps, ISt
             }
         } else {
             // Track publicity
-            icon = this.isPublicRoom ? Icon.Globe : Icon.None;
+            icon = this.isPublicRoom ? Icon.Globe : Icon.Lock;
             if (!this.isWatchingTimeline) {
                 this.props.room.on(RoomEvent.Timeline, this.onRoomTimeline);
                 this.isWatchingTimeline = true;
@@ -207,6 +210,7 @@ export default class DecoratedRoomAvatar extends React.PureComponent<IProps, ISt
                     className={`mx_DecoratedRoomAvatar_icon mx_DecoratedRoomAvatar_icon_${this.state.icon.toLowerCase()}`}
                 >
                     {this.state.icon === Icon.Globe ? <PublicIcon /> : null}
+                    {this.state.icon === Icon.Lock ? <LockSolidIcon /> : null}
                 </div>
             );
         }

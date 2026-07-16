@@ -18,6 +18,7 @@ import NotificationsIcon from "@vector-im/compound-design-tokens/assets/web/icon
 import VerifiedIcon from "@vector-im/compound-design-tokens/assets/web/icons/verified";
 import ErrorIcon from "@vector-im/compound-design-tokens/assets/web/icons/error-solid";
 import PublicIcon from "@vector-im/compound-design-tokens/assets/web/icons/public";
+import LockSolidIcon from "@vector-im/compound-design-tokens/assets/web/icons/lock-solid";
 import { JoinRule, type Room } from "matrix-js-sdk/src/matrix";
 import { type ViewRoomOpts } from "@matrix-org/react-sdk-module-api/lib/lifecycles/RoomViewLifecycle";
 import { Flex, Box } from "@element-hq/web-shared-components";
@@ -470,6 +471,18 @@ export default function RoomHeader({
                                             className="mx_RoomHeader_icon"
                                             color="var(--cpd-color-icon-info-primary)"
                                             aria-label={_t("common|public_room")}
+                                        />
+                                    </Tooltip>
+                                )}
+
+                                {!isDirectMessage && joinRule !== JoinRule.Public && (
+                                    <Tooltip label={_t("common|private_room")} placement="right">
+                                        <LockSolidIcon
+                                            width="16px"
+                                            height="16px"
+                                            className="mx_RoomHeader_icon"
+                                            color="var(--cpd-color-icon-info-primary)"
+                                            aria-label={_t("common|private_room")}
                                         />
                                     </Tooltip>
                                 )}

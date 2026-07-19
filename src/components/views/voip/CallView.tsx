@@ -17,6 +17,7 @@ import { SdkContextClass } from "../../../contexts/SDKContext";
 import { useTypedEventEmitter } from "../../../hooks/useEventEmitter";
 import { useCall } from "../../../hooks/useCall";
 import { SessionClock } from "../voip/CallDuration";
+import { CallRecordingControls } from "./CallRecordingControls";
 
 interface JoinCallViewProps {
     room: Room;
@@ -44,11 +45,14 @@ const JoinCallView: FC<JoinCallViewProps> = ({ room, resizing, call, role, onClo
         await Promise.all(calls.map(async (call) => await call.disconnect()));
     }, []);
 
-    const durationOverlay =
+    const callOverlay =
         call instanceof ElementCall ? (
-            <div className="mx_CallView_callDuration">
-                <SessionClock session={call.session} />
-            </div>
+            <>
+                <div className="mx_CallView_callDuration">
+                    <SessionClock session={call.session} />
+                </div>
+                <CallRecordingControls call={call} />
+            </>
         ) : null;
 
     return (
@@ -62,7 +66,7 @@ const JoinCallView: FC<JoinCallViewProps> = ({ room, resizing, call, role, onClo
                 showMenubar={false}
                 pointerEvents={resizing ? "none" : undefined}
                 stickyPromise={disconnectAllOtherCalls}
-                overlay={durationOverlay}
+                overlay={callOverlay}
             />
         </div>
     );

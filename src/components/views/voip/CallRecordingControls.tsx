@@ -24,6 +24,8 @@ const logger = rootLogger.getChild("voip.CallRecordingControls");
 const HOST_ATTR = "data-mx-call-recording-host";
 const STYLE_ATTR = "data-mx-call-recording-style";
 
+const THEME_ATTR = "data-mx-theme";
+
 const IFRAME_BUTTON_STYLES = `
 [${HOST_ATTR}] {
     position: fixed;
@@ -56,7 +58,7 @@ const IFRAME_BUTTON_STYLES = `
     filter: brightness(0.96);
 }
 .mx_CallView_recordingButton.mx_CallView_recordingButton_active {
-    background-color: rgba(0, 0, 0, 0.75);
+    background-color: rgba(255, 255, 255, 0.92);
     color: #ff4b55;
 }
 .mx_CallView_recordingButton_dot {
@@ -82,10 +84,36 @@ const IFRAME_BUTTON_STYLES = `
 [${HOST_ATTR}]:has(.mx_CallView_recordingButton_active) .mx_CallView_recordingLabel {
     color: #ff4b55;
 }
+[${HOST_ATTR}][${THEME_ATTR}="dark"] .mx_CallView_recordingButton {
+    background-color: rgba(40, 40, 45, 0.9);
+    color: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+[${HOST_ATTR}][${THEME_ATTR}="dark"] .mx_CallView_recordingButton:hover {
+    filter: brightness(1.12);
+}
+[${HOST_ATTR}][${THEME_ATTR}="dark"] .mx_CallView_recordingButton.mx_CallView_recordingButton_active {
+    background-color: rgba(0, 0, 0, 0.75);
+    color: #ff4b55;
+}
+[${HOST_ATTR}][${THEME_ATTR}="dark"] .mx_CallView_recordingLabel {
+    color: #f0f0f0;
+    text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+}
 `;
 
 interface CallRecordingControlsProps {
     call: Call;
+}
+
+function isParentDarkTheme(): boolean {
+    return (
+        document.body.classList.contains("cpd-theme-dark") || document.body.classList.contains("cpd-theme-dark-hc")
+    );
+}
+
+function syncHostTheme(host: HTMLElement): void {
+    host.setAttribute(THEME_ATTR, isParentDarkTheme() ? "dark" : "light");
 }
 
 function findElementCallIframe(): HTMLIFrameElement | null {
@@ -118,13 +146,17 @@ function ensureIframeStyles(doc: Document): void {
 
 function ensureHostInIframe(doc: Document): HTMLElement | null {
     const existing = doc.querySelector<HTMLElement>(`[${HOST_ATTR}]`);
-    if (existing?.isConnected) return existing;
+    if (existing?.isConnected) {
+        syncHostTheme(existing);
+        return existing;
+    }
     if (!doc.body) return null;
 
     ensureIframeStyles(doc);
     const host = doc.createElement("div");
     host.setAttribute(HOST_ATTR, "true");
     host.className = "mx_CallView_recordingControls";
+    syncHostTheme(host);
     doc.body.appendChild(host);
     return host;
 }

@@ -81,7 +81,7 @@ Please see LICENSE files in the repository root for full details.
     }
 
     &.mx_CallView_recordingButton_active {
-        background-color: rgba(0, 0, 0, 0.75);
+        background-color: rgba(255, 255, 255, 0.92);
         color: #ff4b55;
     }
 }
@@ -106,4 +106,27 @@ Please see LICENSE files in the repository root for full details.
 
 .mx_CallView_recordingControls:has(.mx_CallView_recordingButton_active) .mx_CallView_recordingLabel {
     color: #ff4b55;
+}
+
+.cpd-theme-dark,
+.cpd-theme-dark-hc {
+    .mx_CallView_recordingButton {
+        background-color: rgba(40, 40, 45, 0.9);
+        color: #fff;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+
+        &:hover {
+            filter: brightness(1.12);
+        }
+
+        &.mx_CallView_recordingButton_active {
+            background-color: rgba(0, 0, 0, 0.75);
+            color: #ff4b55;
+        }
+    }
+
+    .mx_CallView_recordingLabel {
+        color: #f0f0f0;
+        text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+    }
 }

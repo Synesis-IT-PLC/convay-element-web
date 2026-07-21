@@ -133,6 +133,10 @@ export interface IConfigOptions {
     jwt_failure_redirect_url?: string;
     login_api?: string;
     matrix_static_password?: string;
+    /** Base URL for org appearance branding, e.g. .../services/dashboard/api */
+    branding_api_base_url?: string;
+    /** Base URL for branding file downloads, e.g. .../services/file-service/file */
+    file_service_base_url?: string;
 
     // sso_immediate_redirect is deprecated in favour of sso_redirect_options.immediate
     sso_immediate_redirect?: boolean;

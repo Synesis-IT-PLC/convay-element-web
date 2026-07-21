@@ -82,6 +82,7 @@ import {
 import { TokenRefresher } from "./utils/oidc/TokenRefresher";
 import { checkBrowserSupport } from "./SupportedBrowser";
 import baseConfig from "../config.json";
+import { fetchAndApplyOrgBranding, getOrganizationIdFromJwtPayload } from "./utils/applyOrgBranding";
 
 const HOMESERVER_URL_KEY = "mx_hs_url";
 const ID_SERVER_URL_KEY = "mx_is_url";
@@ -101,8 +102,14 @@ type JwtLoginPayload = {
     device_id?: string;
     home_server?: string;
     user_email?: string;
+    organization_id?: string;
+    organizationId?: string;
+    org_id?: string;
     data?: {
         user_email?: string;
+        organization_id?: string;
+        organizationId?: string;
+        org_id?: string;
     };
     well_known?: {
         "m.homeserver"?: {
@@ -244,6 +251,12 @@ async function performFullJwtLogin(
         if (email) {
             localStorage.setItem("mx_user_email", email);
             console.log("[uia] persisted user email for login_api:", email);
+        }
+
+        // Org branding (title + favicon) — first JWT login only; no-ops if URLs unset / API fails
+        const organizationId = getOrganizationIdFromJwtPayload(payload as unknown as Record<string, unknown>);
+        if (organizationId) {
+            await fetchAndApplyOrgBranding(jwtParam, organizationId);
         }
 
         window.location.assign("#/");

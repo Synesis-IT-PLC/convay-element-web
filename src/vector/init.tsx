@@ -27,6 +27,7 @@ import WebPlatform from "./platform/WebPlatform";
 import { initRageshake, initRageshakeStore } from "./rageshakesetup";
 import { ModuleApi } from "../modules/Api.ts";
 import { applyEnvBranding } from "../utils/applyEnvBranding";
+import { restoreCachedOrgBranding } from "../utils/applyOrgBranding";
 
 export const rageshakePromise = initRageshake();
 
@@ -60,6 +61,7 @@ export async function loadConfig(): Promise<void> {
     if (platformConfig) {
         SdkConfig.put(platformConfig);
         applyEnvBranding();
+        restoreCachedOrgBranding();
     } else {
         SdkConfig.reset();
     }

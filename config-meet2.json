@@ -63,5 +63,7 @@
     "login_api": "https://meet2.synesisit.info:8092/services/organizationsettings/v1/authenticate",
     "matrix_static_password": "Asdf@1234#123",
     "auth_pages_redirect_url": "https://meet2.synesisit.info",
-    "logout_redirect_url": "https://meet2.synesisit.info"
+    "logout_redirect_url": "https://meet2.synesisit.info",
+    "branding_api_base_url": "https://meet2.synesisit.info:8092/services/dashboard/api",
+    "file_service_base_url": "https://meet2.synesisit.info:8092/services/file-service/file"
 }

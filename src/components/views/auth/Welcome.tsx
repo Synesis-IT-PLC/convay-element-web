@@ -16,8 +16,53 @@ import { UIFeature } from "../../../settings/UIFeature";
 import LanguageSelector from "./LanguageSelector";
 import EmbeddedPage from "../../structures/EmbeddedPage";
 import { MATRIX_LOGO_HTML } from "../../structures/static-page-vars";
+import dis from "../../../dispatcher/dispatcher";
+import { Action } from "../../../dispatcher/actions";
+import { type ActionPayload } from "../../../dispatcher/payloads";
+import {
+    maybeRefreshOrgBrandingOnLoad,
+    refreshOrgBrandingFromFragment,
+} from "../../../utils/applyOrgBranding";
 
-export default class Welcome extends React.PureComponent<EmptyObject> {
+const DEFAULT_LOGO_URL = "themes/element/img/logos/element-logo.svg";
+
+interface IState {
+    logoUrl: string;
+    brand: string;
+}
+
+export default class Welcome extends React.Component<EmptyObject, IState> {
+    private dispatcherRef?: string;
+
+    public constructor(props: EmptyObject) {
+        super(props);
+        this.state = this.getBrandingState();
+    }
+
+    private getBrandingState(): IState {
+        const brandingConfig = SdkConfig.getObject("branding");
+        return {
+            logoUrl: brandingConfig?.get("auth_header_logo_url") ?? DEFAULT_LOGO_URL,
+            brand: SdkConfig.get().brand,
+        };
+    }
+
+    public componentDidMount(): void {
+        this.dispatcherRef = dis.register(this.onAction);
+        void refreshOrgBrandingFromFragment();
+        void maybeRefreshOrgBrandingOnLoad();
+    }
+
+    public componentWillUnmount(): void {
+        dis.unregister(this.dispatcherRef);
+    }
+
+    private onAction = (payload: ActionPayload): void => {
+        if (payload.action === Action.OrgBrandingUpdated) {
+            this.setState(this.getBrandingState());
+        }
+    };
+
     public render(): React.ReactNode {
         const pagesConfig = SdkConfig.getObject("embedded_pages");
         let pageUrl: string | undefined;
@@ -31,7 +76,7 @@ export default class Welcome extends React.PureComponent<EmptyObject> {
         }
 
         const replaceMap: Record<string, string> = {
-            "$brand": SdkConfig.get("brand"),
+            "$brand": this.state.brand,
             "$riot:ssoUrl": "#/start_sso",
             "$riot:casUrl": "#/start_cas",
             "$matrixLogo": MATRIX_LOGO_HTML,
@@ -40,9 +85,7 @@ export default class Welcome extends React.PureComponent<EmptyObject> {
 
         if (!pageUrl) {
             // Fall back to default and replace $logoUrl in welcome.html
-            const brandingConfig = SdkConfig.getObject("branding");
-            const logoUrl = brandingConfig?.get("auth_header_logo_url") ?? "themes/element/img/logos/element-logo.svg";
-            replaceMap["$logoUrl"] = logoUrl;
+            replaceMap["$logoUrl"] = this.state.logoUrl;
             replaceMap["$signInUrl"] = authSignInUrl ?? authRedirectUrl ?? "#/login";
             replaceMap["$signUpUrl"] = authSignUpUrl ?? authRedirectUrl ?? "#/register";
             pageUrl = "welcome.html";

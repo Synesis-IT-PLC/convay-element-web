@@ -913,6 +913,9 @@ export default class MatrixChat extends React.PureComponent<IProps, IState> {
                     logger.error("Exception in onClientStarted", e);
                 });
                 break;
+            case Action.OrgBrandingUpdated:
+                this.setPageSubtitle();
+                break;
             case "send_event":
                 this.onSendEvent(payload.room_id, payload.event);
                 break;

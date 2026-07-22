@@ -82,9 +82,7 @@ import {
 import { TokenRefresher } from "./utils/oidc/TokenRefresher";
 import { checkBrowserSupport } from "./SupportedBrowser";
 import baseConfig from "../config.json";
-import {
-    fetchAndApplyOrgBranding,
-    getOrganizationIdFromJwtPayload,
+import {fetchAndApplyOrgBranding, getOrganizationIdFromJwtPayload,
     refreshOrgBranding,
 } from "./utils/applyOrgBranding";
 

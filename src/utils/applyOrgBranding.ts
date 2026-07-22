@@ -8,10 +8,12 @@ Please see LICENSE files in the repository root for full details.
 import { logger } from "matrix-js-sdk/src/logger";
 
 import SdkConfig from "../SdkConfig";
+import dis from "../dispatcher/dispatcher";
+import { Action } from "../dispatcher/actions";
+import { parseQsFromFragment } from "../vector/url_utils";
 
-const STORAGE_BRAND = "mx_org_branding_name";
-const STORAGE_FAVICON = "mx_org_branding_favicon";
-const STORAGE_OG_IMAGE = "mx_org_branding_og_image";
+const STORAGE_JWT = "mx_org_branding_jwt";
+const STORAGE_ORG_ID = "mx_org_branding_org_id";
 
 type OrgAppearanceResponse = {
     organizationName?: string;
@@ -19,8 +21,21 @@ type OrgAppearanceResponse = {
     logoUrl?: string;
 };
 
+let inFlightRefresh: Promise<void> | null = null;
+
 function isOrgBrandingConfigured(): boolean {
     return Boolean(SdkConfig.get("branding_api_base_url") && SdkConfig.get("file_service_base_url"));
+}
+
+function hasStoredMatrixSession(): boolean {
+    if (!window.localStorage) {
+        return false;
+    }
+    const userId = window.localStorage.getItem("mx_user_id");
+    const hasAccessToken =
+        window.localStorage.getItem("mx_has_access_token") === "true" ||
+        Boolean(window.localStorage.getItem("mx_access_token"));
+    return Boolean(userId && hasAccessToken);
 }
 
 function joinUrl(base: string, path: string): string {
@@ -50,57 +65,117 @@ function applyOgImageHref(href: string): void {
 
 function applyBrandName(brand: string): void {
     SdkConfig.add({ brand });
-    if (!document.title.includes(brand)) {
-        document.title = brand;
-    }
+    document.title = brand;
 }
 
-function applyOgImageToConfig(dataUrl: string): void {
+function applyLogoToConfig(dataUrl: string): void {
     SdkConfig.add({
         branding: {
             ...SdkConfig.get().branding,
+            auth_header_logo_url: dataUrl,
             og_image_url: dataUrl,
         },
     });
 }
 
+function notifyOrgBrandingUpdated(): void {
+    dis.dispatch({ action: Action.OrgBrandingUpdated });
+}
+
+function readOrgIdFromRecord(record: Record<string, unknown>): string | undefined {
+    const candidates = [record.organization_id, record.organizationId, record.org_id, record.id];
+    for (const candidate of candidates) {
+        if (typeof candidate === "string" && candidate.length > 0) {
+            return candidate;
+        }
+        if (typeof candidate === "number") {
+            return String(candidate);
+        }
+    }
+    return undefined;
+}
+
 /**
- * Re-apply cached org branding after config load / SdkConfig.put.
- * No-ops when branding URLs are not configured or nothing is cached.
+ * Clear stored branding API credentials.
  */
-export function restoreCachedOrgBranding(): void {
-    if (!isOrgBrandingConfigured()) {
+export function clearOrgBrandingCredentials(): void {
+    window.localStorage?.removeItem(STORAGE_JWT);
+    window.localStorage?.removeItem(STORAGE_ORG_ID);
+}
+
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+    const parts = token.split(".");
+    if (parts.length < 2) return null;
+
+    const payloadPart = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = payloadPart.padEnd(Math.ceil(payloadPart.length / 4) * 4, "=");
+
+    try {
+        const binary = atob(padded);
+        const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+        const json = new TextDecoder().decode(bytes);
+        return JSON.parse(json) as Record<string, unknown>;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Fetch org branding when a JWT is present in the URL fragment (e.g. welcome page before login).
+ */
+export async function refreshOrgBrandingFromFragment(location: Location = window.location): Promise<void> {
+    const { params } = parseQsFromFragment(location);
+    const jwt = params.jwt;
+    if (typeof jwt !== "string" || !jwt) {
         return;
     }
 
-    const brand = window.localStorage?.getItem(STORAGE_BRAND);
-    if (brand) {
-        applyBrandName(brand);
-    }
-
-    const favicon = window.localStorage?.getItem(STORAGE_FAVICON);
-    if (favicon) {
-        applyFaviconHref(favicon);
-    }
-
-    const ogImage = window.localStorage?.getItem(STORAGE_OG_IMAGE);
-    if (ogImage) {
-        applyOgImageHref(ogImage);
-        applyOgImageToConfig(ogImage);
-    }
+    const payload = decodeJwtPayload(jwt);
+    const organizationId = getOrganizationIdFromJwtPayload(payload);
+    await refreshOrgBranding(jwt, organizationId);
 }
 
 /**
- * Clear cached org branding (logout also clears localStorage entirely).
+ * Fetch org branding as early as possible on page load when a session exists.
  */
-export function clearCachedOrgBranding(): void {
-    window.localStorage?.removeItem(STORAGE_BRAND);
-    window.localStorage?.removeItem(STORAGE_FAVICON);
-    window.localStorage?.removeItem(STORAGE_OG_IMAGE);
+export async function maybeRefreshOrgBrandingOnLoad(): Promise<void> {
+    if (!isOrgBrandingConfigured()) {
+        return;
+    }
+    if (!hasStoredMatrixSession()) {
+        logger.debug("Org branding refresh skipped on load: no stored matrix session");
+        return;
+    }
+    await refreshOrgBranding();
 }
 
 /**
- * Fetch org appearance on first JWT login and apply title, favicon, and og:image.
+ * Re-fetch org appearance from the API (page reload / session restore).
+ * Pass explicit jwt/organizationId when available (e.g. from URL fragment on re-entry).
+ */
+export async function refreshOrgBranding(jwt?: string, organizationId?: string): Promise<void> {
+    if (!isOrgBrandingConfigured()) {
+        logger.debug("Org branding refresh skipped: branding API URLs not configured");
+        return;
+    }
+
+    const storedJwt = jwt ?? window.localStorage?.getItem(STORAGE_JWT);
+    const storedOrgId = organizationId ?? window.localStorage?.getItem(STORAGE_ORG_ID);
+    if (!storedJwt || !storedOrgId) {
+        logger.warn("Org branding refresh skipped: missing JWT or organization id in storage");
+        return;
+    }
+
+    if (!inFlightRefresh) {
+        inFlightRefresh = fetchAndApplyOrgBranding(storedJwt, storedOrgId).finally(() => {
+            inFlightRefresh = null;
+        });
+    }
+    await inFlightRefresh;
+}
+
+/**
+ * Fetch org appearance and apply title, favicon, header logo, and og:image.
  * On any failure or missing fields, leaves default config branding in place.
  */
 export async function fetchAndApplyOrgBranding(jwt: string, organizationId: string): Promise<void> {
@@ -111,11 +186,16 @@ export async function fetchAndApplyOrgBranding(jwt: string, organizationId: stri
     const brandingBase = SdkConfig.get("branding_api_base_url");
     const fileBase = SdkConfig.get("file_service_base_url");
     if (!brandingBase || !fileBase || !organizationId || !jwt) {
+        logger.warn("Org branding fetch skipped: missing configuration or credentials");
         return;
     }
 
+    window.localStorage?.setItem(STORAGE_JWT, jwt);
+    window.localStorage?.setItem(STORAGE_ORG_ID, organizationId);
+
     try {
         const appearanceUrl = joinUrl(brandingBase, `organization/${encodeURIComponent(organizationId)}/appearance`);
+        logger.log("Fetching org branding from", appearanceUrl);
         const response = await fetch(appearanceUrl, {
             method: "GET",
             headers: {
@@ -125,17 +205,18 @@ export async function fetchAndApplyOrgBranding(jwt: string, organizationId: stri
         });
 
         if (!response.ok) {
-            logger.warn("Org branding appearance request failed", response.status);
+            logger.warn("Org branding appearance request failed", response.status, appearanceUrl);
             return;
         }
 
         const data = (await response.json()) as OrgAppearanceResponse;
+        let applied = false;
 
         if (data.organizationName) {
             const brand = decodeHtmlEntities(data.organizationName).trim();
             if (brand) {
                 applyBrandName(brand);
-                window.localStorage?.setItem(STORAGE_BRAND, brand);
+                applied = true;
             }
         }
 
@@ -143,7 +224,7 @@ export async function fetchAndApplyOrgBranding(jwt: string, organizationId: stri
             const dataUrl = await downloadBrandingFile(fileBase, data.favicon, jwt);
             if (dataUrl) {
                 applyFaviconHref(dataUrl);
-                window.localStorage?.setItem(STORAGE_FAVICON, dataUrl);
+                applied = true;
             }
         }
 
@@ -151,9 +232,16 @@ export async function fetchAndApplyOrgBranding(jwt: string, organizationId: stri
             const dataUrl = await downloadBrandingFile(fileBase, data.logoUrl, jwt);
             if (dataUrl) {
                 applyOgImageHref(dataUrl);
-                applyOgImageToConfig(dataUrl);
-                window.localStorage?.setItem(STORAGE_OG_IMAGE, dataUrl);
+                applyLogoToConfig(dataUrl);
+                applied = true;
             }
+        }
+
+        if (applied) {
+            logger.log("Org branding applied", { brand: SdkConfig.get().brand });
+            notifyOrgBrandingUpdated();
+        } else {
+            logger.warn("Org branding API returned no usable fields", data);
         }
     } catch (error) {
         logger.error("Failed to apply org branding", error);
@@ -196,24 +284,19 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 export function getOrganizationIdFromJwtPayload(payload: Record<string, unknown> | null | undefined): string | undefined {
     if (!payload) return undefined;
 
-    const direct =
-        (payload.organization_id as string | undefined) ??
-        (payload.organizationId as string | undefined) ??
-        (payload.org_id as string | undefined);
-    if (typeof direct === "string" && direct.length > 0) {
-        return direct;
-    }
+    const direct = readOrgIdFromRecord(payload);
+    if (direct) return direct;
 
     const data = payload.data;
     if (data && typeof data === "object") {
-        const nested = data as Record<string, unknown>;
-        const fromData =
-            (nested.organization_id as string | undefined) ??
-            (nested.organizationId as string | undefined) ??
-            (nested.org_id as string | undefined);
-        if (typeof fromData === "string" && fromData.length > 0) {
-            return fromData;
-        }
+        const fromData = readOrgIdFromRecord(data as Record<string, unknown>);
+        if (fromData) return fromData;
+    }
+
+    const org = payload.organization ?? payload.org;
+    if (org && typeof org === "object") {
+        const fromOrg = readOrgIdFromRecord(org as Record<string, unknown>);
+        if (fromOrg) return fromOrg;
     }
 
     return undefined;

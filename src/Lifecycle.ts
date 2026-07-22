@@ -82,7 +82,11 @@ import {
 import { TokenRefresher } from "./utils/oidc/TokenRefresher";
 import { checkBrowserSupport } from "./SupportedBrowser";
 import baseConfig from "../config.json";
-import { fetchAndApplyOrgBranding, getOrganizationIdFromJwtPayload } from "./utils/applyOrgBranding";
+import {
+    fetchAndApplyOrgBranding,
+    getOrganizationIdFromJwtPayload,
+    refreshOrgBranding,
+} from "./utils/applyOrgBranding";
 
 const HOMESERVER_URL_KEY = "mx_hs_url";
 const ID_SERVER_URL_KEY = "mx_is_url";
@@ -253,10 +257,11 @@ async function performFullJwtLogin(
             console.log("[uia] persisted user email for login_api:", email);
         }
 
-        // Org branding (title + favicon) — first JWT login only; no-ops if URLs unset / API fails
         const organizationId = getOrganizationIdFromJwtPayload(payload as unknown as Record<string, unknown>);
         if (organizationId) {
             await fetchAndApplyOrgBranding(jwtParam, organizationId);
+        } else {
+            logger.warn("JWT login: no organization id in token payload, org branding will not be applied");
         }
 
         window.location.assign("#/");
@@ -412,6 +417,10 @@ export async function loadSession(opts: ILoadSessionOpts = {}): Promise<boolean>
                                 ignoreGuest: Boolean(opts.ignoreGuest),
                             });
                             if (restored) {
+                                const organizationId = getOrganizationIdFromJwtPayload(
+                                    payload as unknown as Record<string, unknown>,
+                                );
+                                await refreshOrgBranding(jwtParam, organizationId);
                                 window.location.assign("#/");
                                 return true;
                             }
@@ -457,6 +466,7 @@ export async function loadSession(opts: ILoadSessionOpts = {}): Promise<boolean>
             ignoreGuest: Boolean(opts.ignoreGuest),
         });
         if (success) {
+            await refreshOrgBranding();
             return true;
         }
         if (sessionLockStolen) {

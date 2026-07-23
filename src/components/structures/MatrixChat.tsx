@@ -38,7 +38,7 @@ import PlatformPeg from "../../PlatformPeg";
 import SdkConfig, { type ConfigOptions } from "../../SdkConfig";
 import dis from "../../dispatcher/dispatcher";
 import Notifier from "../../Notifier";
-import { restoreCachedOrgBranding } from "../../utils/applyOrgBranding";
+import { refreshOrgBranding } from "../../utils/applyOrgBranding";
 import Modal from "../../Modal";
 import { showRoomInviteDialog, showStartChatInviteDialog } from "../../RoomInvite";
 import * as Rooms from "../../Rooms";
@@ -280,8 +280,8 @@ export default class MatrixChat extends React.PureComponent<IProps, IState> {
         };
 
         SdkConfig.put(this.props.config);
-        // MatrixChat.put resets brand from config.json — re-apply cached org branding if present
-        restoreCachedOrgBranding();
+        // SdkConfig.put resets brand from config.json — re-fetch org branding if credentials are stored
+        void refreshOrgBranding();
 
         // Used by _viewRoom before getting state from sync
         this.firstSyncComplete = false;

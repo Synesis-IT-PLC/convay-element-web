@@ -68,14 +68,42 @@ function applyBrandName(brand: string): void {
     document.title = brand;
 }
 
-function applyLogoToConfig(dataUrl: string): void {
+const DEFAULT_LOGO_PATH = "vector-icons/520.png";
+
+function toAbsoluteUrl(path: string): string {
+    if (path.startsWith("data:") || path.startsWith("http://") || path.startsWith("https://") || path.startsWith("blob:")) {
+        return path;
+    }
+    return new URL(path, window.location.origin).href;
+}
+
+function applyLogoToConfig(logoUrl: string, ogImageUrl: string = logoUrl): void {
     SdkConfig.add({
         branding: {
             ...SdkConfig.get().branding,
-            auth_header_logo_url: dataUrl,
-            og_image_url: dataUrl,
+            auth_header_logo_url: logoUrl,
+            og_image_url: ogImageUrl,
         },
     });
+}
+
+/** Restore logo + og:image from config.json branding defaults. */
+function applyDefaultLogoFromConfig(): void {
+    const branding = SdkConfig.get().branding;
+    let logoUrl = branding?.auth_header_logo_url ?? branding?.og_image_url ?? DEFAULT_LOGO_PATH;
+    let ogImageUrl = branding?.og_image_url ?? logoUrl;
+
+    // If SdkConfig was previously overwritten with a fetched data URL, restore the static default
+    if (logoUrl.startsWith("data:")) {
+        logoUrl = DEFAULT_LOGO_PATH;
+    }
+    if (ogImageUrl.startsWith("data:")) {
+        ogImageUrl = DEFAULT_LOGO_PATH;
+    }
+
+    applyLogoToConfig(logoUrl, ogImageUrl);
+    applyOgImageHref(toAbsoluteUrl(ogImageUrl));
+    logger.debug("Using default logo from config", { logoUrl, ogImageUrl });
 }
 
 function notifyOrgBrandingUpdated(): void {
@@ -206,6 +234,8 @@ export async function fetchAndApplyOrgBranding(jwt: string, organizationId: stri
 
         if (!response.ok) {
             logger.warn("Org branding appearance request failed", response.status, appearanceUrl);
+            applyDefaultLogoFromConfig();
+            notifyOrgBrandingUpdated();
             return;
         }
 
@@ -234,7 +264,15 @@ export async function fetchAndApplyOrgBranding(jwt: string, organizationId: stri
                 applyOgImageHref(dataUrl);
                 applyLogoToConfig(dataUrl);
                 applied = true;
+            } else {
+                logger.warn("Org logo download failed, falling back to config default");
+                applyDefaultLogoFromConfig();
+                applied = true;
             }
+        } else {
+            logger.debug("No logoUrl in appearance response, using config default");
+            applyDefaultLogoFromConfig();
+            applied = true;
         }
 
         if (applied) {
@@ -245,6 +283,8 @@ export async function fetchAndApplyOrgBranding(jwt: string, organizationId: stri
         }
     } catch (error) {
         logger.error("Failed to apply org branding", error);
+        applyDefaultLogoFromConfig();
+        notifyOrgBrandingUpdated();
     }
 }
 

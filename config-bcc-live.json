@@ -63,5 +63,7 @@
     "login_api": "https://uct.bcc.gov.bd/services/organizationsettings/v1/authenticate",
     "matrix_static_password": "Asdf@1234#123",
     "auth_pages_redirect_url": "https://uct.bcc.gov.bd",
-    "logout_redirect_url": "https://uct.bcc.gov.bd"
+    "logout_redirect_url": "https://uct.bcc.gov.bd",
+    "branding_api_base_url": "https://uct.bcc.gov.bd/services/dashboard/api",
+    "file_service_base_url": "https://uct.bcc.gov.bd/services/file-service/file"
 }

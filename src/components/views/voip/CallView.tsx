@@ -17,7 +17,6 @@ import { SdkContextClass } from "../../../contexts/SDKContext";
 import { useTypedEventEmitter } from "../../../hooks/useEventEmitter";
 import { useCall } from "../../../hooks/useCall";
 import { SessionClock } from "../voip/CallDuration";
-import { CallRecordingControls } from "./CallRecordingControls";
 
 interface JoinCallViewProps {
     room: Room;
@@ -47,12 +46,9 @@ const JoinCallView: FC<JoinCallViewProps> = ({ room, resizing, call, role, onClo
 
     const callOverlay =
         call instanceof ElementCall ? (
-            <>
-                <div className="mx_CallView_callDuration">
-                    <SessionClock session={call.session} />
-                </div>
-                <CallRecordingControls call={call} />
-            </>
+            <div className="mx_CallView_callDuration">
+                <SessionClock session={call.session} />
+            </div>
         ) : null;
 
     return (

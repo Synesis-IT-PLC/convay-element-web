@@ -56,6 +56,9 @@ import { useScopedRoomContext } from "../../../../contexts/ScopedRoomContext.tsx
 import { ToggleableIcon } from "./toggle/ToggleableIcon.tsx";
 import { CurrentRightPanelPhaseContextProvider } from "../../../../contexts/CurrentRightPanelPhaseContext.tsx";
 import { LocalRoom } from "../../../../models/LocalRoom.ts";
+import { ElementCall } from "../../../../models/Call.ts";
+import { useCall } from "../../../../hooks/useCall.ts";
+import { CallRecordingControls } from "../../voip/CallRecordingControls.tsx";
 
 function RoomHeaderButtons({
     room,
@@ -301,6 +304,7 @@ function RoomHeaderButtons({
 
     const roomContext = useScopedRoomContext("mainSplitContentType");
     const isVideoRoom = calcIsVideoRoom(room);
+    const call = useCall(room.roomId);
     const showChatButton =
         isVideoRoom ||
         roomContext.mainSplitContentType === MainSplitContentType.MaximisedWidget ||
@@ -326,6 +330,8 @@ function RoomHeaderButtons({
             })}
 
             {isViewingCall && <CallGuestLinkButton room={room} />}
+
+            {isConnectedToCall && call instanceof ElementCall && <CallRecordingControls call={call} />}
 
             {activeCallSessionType && !isConnectedToCall && !isViewingCall ? (
                 joinCallButton

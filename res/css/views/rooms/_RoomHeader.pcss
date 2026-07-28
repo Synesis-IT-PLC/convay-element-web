@@ -105,3 +105,34 @@ Please see LICENSE files in the repository root for full details.
 .mx_RoomHeader .mx_RoomHeader_toggled {
     fill: var(--cpd-color-icon-accent-primary);
 }
+
+.mx_RoomHeader_recordingButton {
+    /* Match Compound IconButton SVG children: fill IndicatorIcon and center the glyph */
+    > * {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .mx_RoomHeader_recordingButton_dot {
+        box-sizing: border-box;
+        display: block;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 2.5px solid #ff4b55;
+        padding: 22%;
+        background-color: #ff4b55;
+        background-clip: content-box;
+    }
+
+    /* Stop icon should match other header SVGs */
+    svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    &.mx_RoomHeader_recordingButton_active {
+        color: #ff4b55;
+    }
+}

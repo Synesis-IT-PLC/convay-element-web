@@ -33,8 +33,9 @@ Please see LICENSE files in the repository root for full details.
 .mx_CallView_callDuration {
     position: absolute;
     left: 50%;
-    top: 50%;
-    transform: translate(-50%, -90px);
+    top: 28px;
+    bottom: auto;
+    transform: translateX(-50%);
     pointer-events: none;
     z-index: 2;
     width: auto !important;
@@ -42,91 +43,6 @@ Please see LICENSE files in the repository root for full details.
 }
 
 .mx_CallView_callDuration .mx_Clock {
-    color: $call-primary-content;
+    color: $primary-content;
     font-size: $font-14px;
-}
-
-/*
- * Recording control is portaled into the Element Call iframe (fixed top-left
- * inside that document) so it stays within the call widget at every size.
- * Keep these rules as a fallback if the host ever renders in the parent page.
- */
-.mx_CallView_recordingControls {
-    position: absolute;
-    top: 16px;
-    left: 16px;
-    z-index: 3;
-    pointer-events: auto;
-    width: auto !important;
-    height: auto !important;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-}
-
-.mx_CallView_recordingButton {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 42px !important;
-    height: 42px !important;
-    border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.92);
-    color: #1b1d22;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-
-    &:hover {
-        filter: brightness(0.96);
-    }
-
-    &.mx_CallView_recordingButton_active {
-        background-color: rgba(255, 255, 255, 0.92);
-        color: #ff4b55;
-    }
-}
-
-.mx_CallView_recordingButton_dot {
-    display: block;
-    width: 14px !important;
-    height: 14px !important;
-    border-radius: 50%;
-    background-color: #ff4b55;
-}
-
-.mx_CallView_recordingLabel {
-    font-size: 12px;
-    line-height: 1.2;
-    font-weight: 600;
-    color: #1b1d22;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 0.9);
-    user-select: none;
-    pointer-events: none;
-}
-
-.mx_CallView_recordingControls:has(.mx_CallView_recordingButton_active) .mx_CallView_recordingLabel {
-    color: #ff4b55;
-}
-
-.cpd-theme-dark,
-.cpd-theme-dark-hc {
-    .mx_CallView_recordingButton {
-        background-color: rgba(40, 40, 45, 0.9);
-        color: #fff;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
-
-        &:hover {
-            filter: brightness(1.12);
-        }
-
-        &.mx_CallView_recordingButton_active {
-            background-color: rgba(0, 0, 0, 0.75);
-            color: #ff4b55;
-        }
-    }
-
-    .mx_CallView_recordingLabel {
-        color: #f0f0f0;
-        text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
-    }
 }

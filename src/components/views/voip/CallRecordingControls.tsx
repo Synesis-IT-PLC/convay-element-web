@@ -10,8 +10,8 @@ import classNames from "classnames";
 import { IconButton, Tooltip } from "@vector-im/compound-web";
 import { logger as rootLogger } from "matrix-js-sdk/src/logger";
 import {
-    ListViewIcon,
-    SpotlightViewIcon,
+    LeftPanelCloseIcon,
+    LeftPanelOpenIcon,
     StopSolidIcon,
 } from "@vector-im/compound-design-tokens/assets/web/icons";
 
@@ -118,7 +118,7 @@ export const CallRecordingControls: FC<CallRecordingControlsProps> = ({ call }) 
                         aria-label={sidebarAriaLabel}
                         aria-pressed={!sidebarHidden}
                     >
-                        {sidebarHidden ? <SpotlightViewIcon /> : <ListViewIcon />}
+                        {sidebarHidden ? <LeftPanelOpenIcon /> : <LeftPanelCloseIcon />}
                     </IconButton>
                 </Tooltip>
             )}

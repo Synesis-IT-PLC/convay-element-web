@@ -5,7 +5,7 @@ SPDX-License-Identifier: AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Com
 Please see LICENSE files in the repository root for full details.
 */
 
-import React, { type FC, useCallback, useEffect, useRef, useState } from "react";
+import React, { type FC, useCallback, useContext, useEffect, useRef, useState } from "react";
 import classNames from "classnames";
 import { IconButton, Tooltip } from "@vector-im/compound-web";
 import { logger as rootLogger } from "matrix-js-sdk/src/logger";
@@ -19,6 +19,8 @@ import type { Call } from "../../../models/Call";
 import { ConnectionState } from "../../../models/Call";
 import { useConnectionState } from "../../../hooks/useCall";
 import { CallTabRecorder } from "../../../voip/CallTabRecorder";
+import { sendCallRecordingNotice } from "../../../voip/sendCallRecordingNotice";
+import MatrixClientContext from "../../../contexts/MatrixClientContext";
 import { _t } from "../../../languageHandler";
 import Modal from "../../../Modal";
 import ErrorDialog from "../dialogs/ErrorDialog";
@@ -33,10 +35,12 @@ interface CallRecordingControlsProps {
  * Record control for Element Call, shown in the room header while connected.
  */
 export const CallRecordingControls: FC<CallRecordingControlsProps> = ({ call }) => {
+    const cli = useContext(MatrixClientContext);
     const connectionState = useConnectionState(call);
     const [recording, setRecording] = useState(false);
     const [sidebarHidden, setSidebarHidden] = useState(true);
     const recorderRef = useRef<CallTabRecorder | null>(null);
+    const prevRecordingRef = useRef(false);
 
     useEffect(() => {
         const recorder = new CallTabRecorder();
@@ -60,6 +64,15 @@ export const CallRecordingControls: FC<CallRecordingControlsProps> = ({ call }) 
             setSidebarHidden(true);
         }
     }, [recording]);
+
+    useEffect(() => {
+        const wasRecording = prevRecordingRef.current;
+        if (wasRecording === recording) {
+            return;
+        }
+        prevRecordingRef.current = recording;
+        void sendCallRecordingNotice(cli, call.roomId, recording);
+    }, [recording, cli, call.roomId]);
 
     const onClick = useCallback(async (ev: React.MouseEvent): Promise<void> => {
         ev.stopPropagation();

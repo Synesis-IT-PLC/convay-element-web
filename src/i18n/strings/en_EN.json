@@ -4056,6 +4056,8 @@
         "start_screenshare": "Start sharing your screen",
         "stop_call_recording": "Stop recording",
         "stop_screenshare": "Stop sharing your screen",
+        "user_started_call_recording": "%(name)s is recording this call",
+        "user_stopped_call_recording": "%(name)s stopped recording this call",
         "too_many_calls": "Too Many Calls",
         "too_many_calls_description": "You've reached the maximum number of simultaneous calls.",
         "transfer_consult_first_label": "Consult first",

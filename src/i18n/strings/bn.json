@@ -4056,6 +4056,8 @@
         "start_screenshare": "আপনার স্ক্রিন শেয়ার করা শুরু করুন",
         "stop_call_recording": "রেকর্ডিং বন্ধ করুন",
         "stop_screenshare": "আপনার স্ক্রিন শেয়ার করা বন্ধ করুন",
+        "user_started_call_recording": "%(name)s এই কলটি রেকর্ড করছেন",
+        "user_stopped_call_recording": "%(name)s কল রেকর্ডিং বন্ধ করেছেন",
         "too_many_calls": "অনেক কল",
         "too_many_calls_description": "আপনি একযোগে কলের সর্বোচ্চ সংখ্যায় পৌঁছে গেছেন।",
         "transfer_consult_first_label": "প্রথমে পরামর্শ করুন",

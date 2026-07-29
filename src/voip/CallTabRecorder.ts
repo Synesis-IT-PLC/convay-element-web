@@ -10,6 +10,17 @@ import { saveAs } from "file-saver";
 
 const logger = rootLogger.getChild("voip.CallTabRecorder");
 
+const SIDEBAR_HIDDEN_CLASS = "mx_CallTabRecording";
+
+function setSidebarHiddenLayout(hidden: boolean): void {
+    document.body.classList.toggle(SIDEBAR_HIDDEN_CLASS, hidden);
+}
+
+/** Wait one frame so the hidden sidebar is painted before capture starts. */
+function waitForLayoutPaint(): Promise<void> {
+    return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+}
+
 function pickMimeType(): string {
     const candidates = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"];
     for (const candidate of candidates) {
@@ -36,10 +47,29 @@ export class CallTabRecorder {
     private stream: MediaStream | null = null;
     private chunks: Blob[] = [];
     private mimeType = "";
+    private sidebarHidden = false;
     private onRecordingChange: ((recording: boolean) => void) | null = null;
+    private onSidebarHiddenChange: ((hidden: boolean) => void) | null = null;
 
     public setRecordingChangeListener(listener: ((recording: boolean) => void) | null): void {
         this.onRecordingChange = listener;
+    }
+
+    public setSidebarHiddenChangeListener(listener: ((hidden: boolean) => void) | null): void {
+        this.onSidebarHiddenChange = listener;
+    }
+
+    public get isSidebarHidden(): boolean {
+        return this.sidebarHidden;
+    }
+
+    public setSidebarHidden(hidden: boolean): void {
+        if (!this.isRecording || this.sidebarHidden === hidden) {
+            return;
+        }
+        this.sidebarHidden = hidden;
+        setSidebarHiddenLayout(hidden);
+        this.onSidebarHiddenChange?.(hidden);
     }
 
     public get isRecording(): boolean {
@@ -62,9 +92,15 @@ export class CallTabRecorder {
             monitorTypeSurfaces: "exclude",
         } as DisplayMediaStreamOptions;
 
+        setSidebarHiddenLayout(true);
+        this.sidebarHidden = true;
+        await waitForLayoutPaint();
+
         try {
             this.stream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
         } catch (error) {
+            this.sidebarHidden = false;
+            setSidebarHiddenLayout(false);
             if (isUserCancellation(error)) {
                 logger.info("Call tab recording cancelled by user");
                 return;
@@ -136,6 +172,9 @@ export class CallTabRecorder {
         this.mediaRecorder = null;
         this.chunks = [];
         this.mimeType = "";
+        this.sidebarHidden = false;
+        setSidebarHiddenLayout(false);
+        this.onSidebarHiddenChange?.(false);
         this.onRecordingChange?.(false);
     }
 }

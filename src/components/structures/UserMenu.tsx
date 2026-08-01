@@ -12,7 +12,6 @@ import {
     ChatSolidIcon,
     HomeSolidIcon,
     LockSolidIcon,
-    QrCodeIcon,
     SettingsSolidIcon,
     LeaveIcon,
     NotificationsSolidIcon,
@@ -324,18 +323,18 @@ export default class UserMenu extends React.Component<IProps, IState> {
             );
         }
 
-        const linkNewDeviceButton = (
-            <IconizedContextMenuOption
-                icon={<QrCodeIcon />}
-                label={_t("user_menu|link_new_device")}
-                onClick={(e) => this.onSettingsOpen(e, UserTab.SessionManager, { showMsc4108QrCode: true })}
-            />
-        );
+        // const linkNewDeviceButton = (
+        //     <IconizedContextMenuOption
+        //         icon={<QrCodeIcon />}
+        //         label={_t("user_menu|link_new_device")}
+        //         onClick={(e) => this.onSettingsOpen(e, UserTab.SessionManager, { showMsc4108QrCode: true })}
+        //     />
+        // );
 
         let primaryOptionList = (
             <IconizedContextMenuOptionList>
                 {homeButton}
-                {linkNewDeviceButton}
+                {/* {linkNewDeviceButton} */}
                 <IconizedContextMenuOption
                     icon={<NotificationsSolidIcon />}
                     label={_t("notifications|enable_prompt_toast_title")}

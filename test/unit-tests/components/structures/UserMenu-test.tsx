@@ -110,7 +110,8 @@ describe("<UserMenu>", () => {
         });
     });
 
-    it("should render 'Link new device' button in OIDC native mode", async () => {
+    // Disabled: "Link new device" menu item is commented out in UserMenu.tsx
+    it.skip("should render 'Link new device' button in OIDC native mode", async () => {
         sdkContext.client = stubClient();
         const openIdMetadata = mockOpenIdConfiguration("https://issuer/");
         openIdMetadata.grant_types_supported.push(DEVICE_CODE_SCOPE);

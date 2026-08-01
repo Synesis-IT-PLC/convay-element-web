@@ -351,12 +351,12 @@ export default class UserMenu extends React.Component<IProps, IState> {
                     onClick={(e) => this.onSettingsOpen(e)}
                 />
                 {feedbackButton}
-                <IconizedContextMenuOption
+                {/* <IconizedContextMenuOption
                     className="mx_IconizedContextMenu_option_red"
                     icon={<LeaveIcon />}
                     label={_t("action|sign_out")}
                     onClick={this.onSignOutClick}
-                />
+                /> */}
             </IconizedContextMenuOptionList>
         );
 

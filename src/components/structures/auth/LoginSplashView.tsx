@@ -71,11 +71,11 @@ export function LoginSplashView(props: Props): JSX.Element {
         <div className="mx_MatrixChat_splash">
             {errorBox}
             {spinnerOrProgress}
-            <div className="mx_LoginSplashView_splashButtons">
+            {/* <div className="mx_LoginSplashView_splashButtons">
                 <AccessibleButton kind="link_inline" onClick={props.onLogoutClick}>
                     {_t("action|logout")}
                 </AccessibleButton>
-            </div>
+            </div> */}
         </div>
     );
 }

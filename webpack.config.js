@@ -725,7 +725,22 @@ module.exports = (env, argv) => {
             }),
 
             // We bake the version in so the app knows its version immediately
-            new webpack.DefinePlugin({ "process.env.VERSION": JSON.stringify(VERSION) }),
+            // Firebase config is loaded from .env via dotenv above
+            new webpack.DefinePlugin({
+                "process.env.VERSION": JSON.stringify(VERSION),
+                "process.env.FIREBASE_API_KEY": JSON.stringify(process.env.FIREBASE_API_KEY ?? ""),
+                "process.env.FIREBASE_AUTH_DOMAIN": JSON.stringify(process.env.FIREBASE_AUTH_DOMAIN ?? ""),
+                "process.env.FIREBASE_DATABASE_URL": JSON.stringify(process.env.FIREBASE_DATABASE_URL ?? ""),
+                "process.env.FIREBASE_PROJECT_ID": JSON.stringify(process.env.FIREBASE_PROJECT_ID ?? ""),
+                "process.env.FIREBASE_STORAGE_BUCKET": JSON.stringify(process.env.FIREBASE_STORAGE_BUCKET ?? ""),
+                "process.env.FIREBASE_MESSAGING_SENDER_ID": JSON.stringify(
+                    process.env.FIREBASE_MESSAGING_SENDER_ID ?? "",
+                ),
+                "process.env.FIREBASE_APP_ID": JSON.stringify(process.env.FIREBASE_APP_ID ?? ""),
+                "process.env.FIREBASE_MEASUREMENT_ID": JSON.stringify(process.env.FIREBASE_MEASUREMENT_ID ?? ""),
+                "process.env.FIREBASE_AUTH_EMAIL": JSON.stringify(process.env.FIREBASE_AUTH_EMAIL ?? ""),
+                "process.env.FIREBASE_AUTH_PASSWORD": JSON.stringify(process.env.FIREBASE_AUTH_PASSWORD ?? ""),
+            }),
             // But we also write it to a file which gets polled for update detection
             new VersionFilePlugin({
                 outputFile: "version",

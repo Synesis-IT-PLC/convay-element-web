@@ -24,45 +24,31 @@ type Props = {
     requestClose: () => void;
 };
 
-const MATCH_SYSTEM_THEME_ID = "MATCH_SYSTEM_THEME_ID";
-
 const QuickThemeSwitcher: React.FC<Props> = ({ requestClose }) => {
-    const orderedThemes = useMemo(() => getOrderedThemes(), []);
+    const orderedThemes = useMemo(
+        () => getOrderedThemes().filter((t) => t.id === "light" || t.id === "dark"),
+        [],
+    );
 
     const themeState = useTheme();
     const nonHighContrast = findNonHighContrastTheme(themeState.theme);
     const theme = nonHighContrast ? nonHighContrast : themeState.theme;
-    const { systemThemeActivated } = themeState;
-
-    const themeOptions = [
-        {
-            id: MATCH_SYSTEM_THEME_ID,
-            name: _t("theme|match_system"),
-        },
-        ...orderedThemes,
-    ];
-
-    const selectedTheme = systemThemeActivated ? MATCH_SYSTEM_THEME_ID : theme;
 
     const onOptionChange = async (newTheme: string): Promise<void> => {
         PosthogTrackers.trackInteraction("WebQuickSettingsThemeDropdown");
 
         try {
-            if (newTheme === MATCH_SYSTEM_THEME_ID) {
-                await SettingsStore.setValue("use_system_theme", null, SettingLevel.DEVICE, true);
-            } else {
-                // The settings watcher doesn't fire until the echo comes back from the
-                // server, so to make the theme change immediately we need to manually
-                // do the dispatch now
-                // XXX: The local echoed value appears to be unreliable, in particular
-                // when settings custom themes(!) so adding forceTheme to override
-                // the value from settings.
-                dis.dispatch<RecheckThemePayload>({ action: Action.RecheckTheme, forceTheme: newTheme });
-                await Promise.all([
-                    SettingsStore.setValue("theme", null, SettingLevel.DEVICE, newTheme),
-                    SettingsStore.setValue("use_system_theme", null, SettingLevel.DEVICE, false),
-                ]);
-            }
+            // The settings watcher doesn't fire until the echo comes back from the
+            // server, so to make the theme change immediately we need to manually
+            // do the dispatch now
+            // XXX: The local echoed value appears to be unreliable, in particular
+            // when settings custom themes(!) so adding forceTheme to override
+            // the value from settings.
+            dis.dispatch<RecheckThemePayload>({ action: Action.RecheckTheme, forceTheme: newTheme });
+            await Promise.all([
+                SettingsStore.setValue("theme", null, SettingLevel.DEVICE, newTheme),
+                SettingsStore.setValue("use_system_theme", null, SettingLevel.DEVICE, false),
+            ]);
         } catch {
             dis.dispatch<RecheckThemePayload>({ action: Action.RecheckTheme });
         }
@@ -76,11 +62,11 @@ const QuickThemeSwitcher: React.FC<Props> = ({ requestClose }) => {
             <Dropdown
                 id="mx_QuickSettingsButton_themePickerDropdown"
                 onOptionChange={onOptionChange}
-                value={selectedTheme}
+                value={theme}
                 label={_t("common|theme")}
             >
                 {
-                    themeOptions.map((theme) => <div key={theme.id}>{theme.name}</div>) as NonEmptyArray<
+                    orderedThemes.map((theme) => <div key={theme.id}>{theme.name}</div>) as NonEmptyArray<
                         ReactElement & { key: string }
                     >
                 }

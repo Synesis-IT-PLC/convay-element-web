@@ -9,7 +9,6 @@
 import React, { type ChangeEvent, type JSX, useCallback, useMemo, useState } from "react";
 import {
     InlineField,
-    ToggleControl,
     Label,
     Root,
     RadioControl,
@@ -24,7 +23,6 @@ import { logger } from "matrix-js-sdk/src/logger";
 
 import { _t } from "../../../languageHandler";
 import { SettingsSubsection } from "./shared/SettingsSubsection";
-import ThemeWatcher from "../../../settings/watchers/ThemeWatcher";
 import SettingsStore from "../../../settings/SettingsStore";
 import { SettingLevel } from "../../../settings/SettingLevel";
 import dis from "../../../dispatcher/dispatcher";
@@ -32,9 +30,7 @@ import { type RecheckThemePayload } from "../../../dispatcher/payloads/RecheckTh
 import { Action } from "../../../dispatcher/actions";
 import { useTheme } from "../../../hooks/useTheme";
 import {
-    findHighContrastTheme,
     getOrderedThemes,
-    type CustomTheme as CustomThemeType,
     type ITheme,
 } from "../../../theme";
 import { useSettingValue } from "../../../hooks/useSettings";
@@ -44,47 +40,13 @@ import { useSettingValue } from "../../../hooks/useSettings";
  */
 export function ThemeChoicePanel(): JSX.Element {
     const themeState = useTheme();
-    const themeWatcher = useMemo(() => new ThemeWatcher(), []);
     const customThemeEnabled = useSettingValue("feature_custom_themes");
 
     return (
         <SettingsSubsection heading={_t("common|theme")} legacy={false} data-testid="themePanel">
-            {themeWatcher.isSystemThemeSupported() && (
-                <SystemTheme systemThemeActivated={themeState.systemThemeActivated} />
-            )}
-            <ThemeSelectors theme={themeState.theme} disabled={themeState.systemThemeActivated} />
+            <ThemeSelectors theme={themeState.theme} disabled={false} />
             {customThemeEnabled && <CustomTheme theme={themeState.theme} />}
         </SettingsSubsection>
-    );
-}
-
-/**
- * Component to toggle the system theme
- */
-interface SystemThemeProps {
-    /* Whether the system theme is activated */
-    systemThemeActivated: boolean;
-}
-
-/**
- * Component to toggle the system theme
- */
-function SystemTheme({ systemThemeActivated }: SystemThemeProps): JSX.Element {
-    return (
-        <Root
-            onChange={async (evt) => {
-                const checked = new FormData(evt.currentTarget).get("systemTheme") === "on";
-                await SettingsStore.setValue("use_system_theme", null, SettingLevel.DEVICE, checked);
-                dis.dispatch<RecheckThemePayload>({ action: Action.RecheckTheme });
-            }}
-        >
-            <InlineField
-                name="systemTheme"
-                control={<ToggleControl name="systemTheme" defaultChecked={systemThemeActivated} />}
-            >
-                <Label>{SettingsStore.getDisplayName("use_system_theme")}</Label>
-            </InlineField>
-        </Root>
     );
 }
 
@@ -164,47 +126,14 @@ function ThemeSelectors({ theme, disabled }: ThemeSelectorProps): JSX.Element {
  * Return all the available themes
  */
 function useThemes(): Array<ITheme & { isDark: boolean }> {
-    const customThemes = useSettingValue("custom_themes");
     return useMemo(() => {
-        // Put the custom theme into a map
-        // To easily find the theme by name when going through the themes list
-        const checkedCustomThemes = customThemes || [];
-        const customThemeMap = checkedCustomThemes.reduce(
-            (map, theme) => map.set(theme.name, theme),
-            new Map<string, CustomThemeType>(),
-        );
-
-        const themes = getOrderedThemes();
-        // Separate the built-in themes from the custom themes
-        // To insert the high contrast theme between them
-        const builtInThemes = themes.filter((theme) => !customThemeMap.has(theme.name));
-        const otherThemes = themes.filter((theme) => customThemeMap.has(theme.name));
-
-        const highContrastTheme = makeHighContrastTheme();
-        if (highContrastTheme) builtInThemes.push(highContrastTheme);
-
-        const allThemes = builtInThemes.concat(otherThemes);
-
-        // Check if the themes are dark
-        return allThemes.map((theme) => {
-            const customTheme = customThemeMap.get(theme.name);
-            const isDark = (customTheme ? customTheme.is_dark : theme.id.includes("dark")) || false;
-            return { ...theme, isDark };
-        });
-    }, [customThemes]);
-}
-
-/**
- * Create the light high contrast theme
- */
-function makeHighContrastTheme(): ITheme | undefined {
-    const lightHighContrastId = findHighContrastTheme("light");
-    if (lightHighContrastId) {
-        return {
-            name: _t("settings|appearance|high_contrast"),
-            id: lightHighContrastId,
-        };
-    }
+        return getOrderedThemes()
+            .filter((theme) => theme.id === "light" || theme.id === "dark")
+            .map((theme) => ({
+                ...theme,
+                isDark: theme.id.includes("dark"),
+            }));
+    }, []);
 }
 
 interface CustomThemeProps {

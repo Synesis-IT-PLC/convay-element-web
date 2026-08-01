@@ -28,6 +28,7 @@ import { initRageshake, initRageshakeStore } from "./rageshakesetup";
 import { ModuleApi } from "../modules/Api.ts";
 import { applyEnvBranding } from "../utils/applyEnvBranding";
 import { maybeRefreshOrgBrandingOnLoad } from "../utils/applyOrgBranding";
+import { initFirebaseRemoteLogout } from "../utils/FirebaseRemoteLogout";
 
 export const rageshakePromise = initRageshake();
 
@@ -62,6 +63,7 @@ export async function loadConfig(): Promise<void> {
         SdkConfig.put(platformConfig);
         applyEnvBranding();
         void maybeRefreshOrgBrandingOnLoad();
+        initFirebaseRemoteLogout();
     } else {
         SdkConfig.reset();
     }

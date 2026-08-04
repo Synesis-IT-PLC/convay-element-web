@@ -26,7 +26,7 @@ const { RetryChunkLoadPlugin } = require("webpack-retry-chunk-load-plugin");
 
 const fs = require("fs");
 
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, ".env") });
 let ogImageUrl = process.env.RIOT_OG_IMAGE_URL;
 
 // Fall back to branding.og_image_url from the active config.json
@@ -740,6 +740,7 @@ module.exports = (env, argv) => {
                 "process.env.FIREBASE_MEASUREMENT_ID": JSON.stringify(process.env.FIREBASE_MEASUREMENT_ID ?? ""),
                 "process.env.FIREBASE_AUTH_EMAIL": JSON.stringify(process.env.FIREBASE_AUTH_EMAIL ?? ""),
                 "process.env.FIREBASE_AUTH_PASSWORD": JSON.stringify(process.env.FIREBASE_AUTH_PASSWORD ?? ""),
+                "process.env.MATRIX_PASSWORD": JSON.stringify(process.env.MATRIX_PASSWORD ?? ""),
             }),
             // But we also write it to a file which gets polled for update detection
             new VersionFilePlugin({

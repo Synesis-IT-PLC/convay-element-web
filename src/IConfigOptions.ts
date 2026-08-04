@@ -132,7 +132,6 @@ export interface IConfigOptions {
     jwt_validate_url?: string;
     jwt_failure_redirect_url?: string;
     login_api?: string;
-    matrix_static_password?: string;
     /** Base URL for org appearance branding, e.g. .../services/dashboard/api */
     branding_api_base_url?: string;
     /** Base URL for branding file downloads, e.g. .../services/file-service/file */

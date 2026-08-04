@@ -16,7 +16,6 @@ const STORAGE_JWT = "mx_org_branding_jwt";
 const STORAGE_ORG_ID = "mx_org_branding_org_id";
 
 type OrgAppearanceResponse = {
-    organizationName?: string;
     favicon?: string;
     logoUrl?: string;
 };
@@ -42,11 +41,6 @@ function joinUrl(base: string, path: string): string {
     return `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
 }
 
-function decodeHtmlEntities(text: string): string {
-    const doc = new DOMParser().parseFromString(text, "text/html");
-    return doc.documentElement.textContent ?? text;
-}
-
 function applyFaviconHref(href: string): void {
     document.querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="apple-touch-icon"]').forEach((link) => {
         link.href = href;
@@ -61,11 +55,6 @@ function applyOgImageHref(href: string): void {
         document.head.appendChild(meta);
     }
     meta.content = href;
-}
-
-function applyBrandName(brand: string): void {
-    SdkConfig.add({ brand });
-    document.title = brand;
 }
 
 const DEFAULT_LOGO_PATH = "vector-icons/520.png";
@@ -203,7 +192,8 @@ export async function refreshOrgBranding(jwt?: string, organizationId?: string):
 }
 
 /**
- * Fetch org appearance and apply title, favicon, header logo, and og:image.
+ * Fetch org appearance and apply favicon, header logo, and og:image.
+ * Tab title and brand name remain from config.json.
  * On any failure or missing fields, leaves default config branding in place.
  */
 export async function fetchAndApplyOrgBranding(jwt: string, organizationId: string): Promise<void> {
@@ -242,14 +232,6 @@ export async function fetchAndApplyOrgBranding(jwt: string, organizationId: stri
         const data = (await response.json()) as OrgAppearanceResponse;
         let applied = false;
 
-        if (data.organizationName) {
-            const brand = decodeHtmlEntities(data.organizationName).trim();
-            if (brand) {
-                applyBrandName(brand);
-                applied = true;
-            }
-        }
-
         if (data.favicon) {
             const dataUrl = await downloadBrandingFile(fileBase, data.favicon, jwt);
             if (dataUrl) {
@@ -276,7 +258,7 @@ export async function fetchAndApplyOrgBranding(jwt: string, organizationId: stri
         }
 
         if (applied) {
-            logger.log("Org branding applied", { brand: SdkConfig.get().brand });
+            logger.log("Org branding applied");
             notifyOrgBrandingUpdated();
         } else {
             logger.warn("Org branding API returned no usable fields", data);

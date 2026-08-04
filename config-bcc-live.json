@@ -14,7 +14,7 @@
     "disable_3pid_login": true,
     "force_verification": false,
     "env": "bcc-live",
-    "brand": "Chat",
+    "brand": "UCT Chat",
     "integrations_ui_url": "https://scalar.vector.im/",
     "integrations_rest_url": "https://scalar.vector.im/api",
     "integrations_widgets_urls": [

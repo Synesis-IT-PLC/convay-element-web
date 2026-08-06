@@ -27,6 +27,7 @@ import { EncryptionCardButtons } from "../settings/encryption/EncryptionCardButt
 import { EncryptionCard } from "../settings/encryption/EncryptionCard.tsx";
 import SdkConfig from "../../../SdkConfig";
 import { authenticateViaLoginApi } from "../../../utils/authenticateViaLoginApi";
+import { getMatrixPassword } from "../../../utils/matrixPassword";
 
 /* This file contains a collection of components which are used by the
  * InteractiveAuth to prompt the user to enter the information needed
@@ -136,7 +137,7 @@ export class PasswordAuthEntry extends React.Component<IAuthEntryProps, IPasswor
             }
         }
 
-        const staticPassword = SdkConfig.get("matrix_static_password");
+        const staticPassword = getMatrixPassword();
         console.log("[uia] Matrix password verification stage", {
             userId: this.props.matrixClient.credentials.userId,
             usingStaticPassword: Boolean(staticPassword),

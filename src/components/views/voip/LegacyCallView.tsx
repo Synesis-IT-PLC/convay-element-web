@@ -224,10 +224,23 @@ export default class LegacyCallView extends React.Component<IProps, IState> {
             };
         }
 
+        const screensharingFeeds = feeds.filter((feed) => feed.purpose === SDPStreamMetadataPurpose.Screenshare);
+        const usermediaFeeds = feeds.filter((feed) => feed.purpose === SDPStreamMetadataPurpose.Usermedia);
+
+        // 1:1 call with screen sharing: remove duplicate usermedia feed
+        if (screensharingFeeds.length > 0 && usermediaFeeds.length === 2) {
+            const localUsermedia = usermediaFeeds.find((feed) => feed.isLocal());
+            const remoteUsermedia = usermediaFeeds.find((feed) => !feed.isLocal());
+            if (localUsermedia && remoteUsermedia) {
+                const primary = screensharingFeeds.find((feed) => !feed.isLocal()) || screensharingFeeds[0];
+                const secondary = primary.isLocal() ? remoteUsermedia : localUsermedia;
+                return { primary, secondary, sidebar: [] };
+            }
+        }
+
         let primary: CallFeed | undefined;
 
         // Try to use a screensharing as primary, a remote one if possible
-        const screensharingFeeds = feeds.filter((feed) => feed.purpose === SDPStreamMetadataPurpose.Screenshare);
         primary = screensharingFeeds.find((feed) => !feed.isLocal()) || screensharingFeeds[0];
         // If we didn't find remote screen-sharing stream, try to find any remote stream
         if (!primary) {

@@ -100,7 +100,14 @@ class ReactionPicker extends React.Component<IProps, IState> {
             // Tell the emoji picker not to bump this in the more frequently used list.
             return false;
         } else {
-            MatrixClientPeg.safeGet().sendEvent(this.props.mxEvent.getRoomId()!, EventType.Reaction, {
+            const client = MatrixClientPeg.safeGet();
+            const roomId = this.props.mxEvent.getRoomId()!;
+
+            for (const existingReactionId of Object.values(myReactions)) {
+                client.redactEvent(roomId, existingReactionId);
+            }
+
+            client.sendEvent(roomId, EventType.Reaction, {
                 "m.relates_to": {
                     rel_type: RelationType.Annotation,
                     event_id: this.props.mxEvent.getId()!,

@@ -307,7 +307,20 @@ export class SendMessageComposer extends React.Component<ISendMessageComposerPro
                     shouldReact = !myReactionKeys.includes(reaction);
                 }
                 if (shouldReact) {
-                    MatrixClientPeg.safeGet().sendEvent(lastMessage.getRoomId()!, EventType.Reaction, {
+                    const client = MatrixClientPeg.safeGet();
+                    const roomId = lastMessage.getRoomId()!;
+
+                    if (messageReactions) {
+                        const existingEvents =
+                            messageReactions.getAnnotationsBySender()?.[userId] || new Set<MatrixEvent>();
+                        for (const evt of existingEvents) {
+                            if (!evt.isRedacted()) {
+                                client.redactEvent(roomId, evt.getId()!);
+                            }
+                        }
+                    }
+
+                    client.sendEvent(roomId, EventType.Reaction, {
                         "m.relates_to": {
                             rel_type: RelationType.Annotation,
                             event_id: lastMessage.getId()!,

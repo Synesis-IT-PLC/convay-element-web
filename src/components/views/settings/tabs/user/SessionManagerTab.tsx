@@ -279,12 +279,12 @@ const SessionManagerTab: React.FC<{
     return (
         <SettingsTab>
             <SettingsSection>
-                <LoginWithQRSection
+                {/* <LoginWithQRSection
                     onShowQr={onShowQrClicked}
                     versions={clientVersions}
                     oidcClientConfig={oidcClientConfig}
                     isCrossSigningReady={isCrossSigningReady}
-                />
+                /> */}
                 <SecurityRecommendations
                     devices={devices}
                     goToFilteredList={onGoToFilteredList}

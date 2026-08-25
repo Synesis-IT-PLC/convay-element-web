@@ -6,6 +6,11 @@
         },
         "m.identity_server": {
             "base_url": "https://sydent-bcc-ml.convay.com"
+        },
+        "oidc_static_clients": {
+            "https://mas-bccmatrix.convay.com/": {
+            "client_id": "0000000000000000E1EMENTWEB"
+            }
         }
     },
     "env": "meet2",

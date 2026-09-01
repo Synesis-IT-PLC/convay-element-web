@@ -13,7 +13,7 @@
             }
         }
     },
-    "env": "meet2",
+    "env": "bcc-ml",
     "disable_custom_urls": false,
     "disable_guests": false,
     "disable_login_language_selector": false,
@@ -65,8 +65,8 @@
     "map_style_url": "https://api.maptiler.com/maps/streets/style.json?key=fU3vlMsMn4Jb6dnEIFsx",
     "jwt_validate_url": "https://bcc-ml.synesisit.info:8092/services/organizationsettings/v1/authenticate/by-token",
     "jwt_failure_redirect_url": "https://bcc-ml.synesisit.info",
+    "mas_login_url": "https://mas-bccmatrix.convay.com/login",
     "login_api": "https://bcc-ml.synesisit.info:8092/services/organizationsettings/v1/authenticate",
-    "matrix_static_password": "Asdf@1234#123",
     "auth_pages_redirect_url": "https://bcc-ml.synesisit.info",
     "logout_redirect_url": "https://bcc-ml.synesisit.info",
     "branding_api_base_url": "https://bcc-ml.synesisit.info:8092/services/dashboard/api",

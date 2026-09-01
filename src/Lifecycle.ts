@@ -97,6 +97,9 @@ const DEFAULT_JWT_VALIDATE_URL =
 const DEFAULT_JWT_FAILURE_REDIRECT_URL =
     (typeof CONFIG.jwt_failure_redirect_url === "string" && CONFIG.jwt_failure_redirect_url) || "";
 
+const DEFAULT_MAS_LOGIN_URL =
+    (typeof CONFIG.mas_login_url === "string" && CONFIG.mas_login_url) || "";
+
 type JwtLoginPayload = {
     access_token?: string;
     refresh_token?: string;
@@ -154,6 +157,122 @@ function normalizeHomeserverUrl(url: string): string {
     return url.replace(/\/+$/, "");
 }
 
+const MAS_LOGIN_WINDOW_NAME = "mx_mas_login";
+
+let pendingMasLoginWindow: Window | null = null;
+let masLoginTabOpened = false;
+let masLoginFallbackBound = false;
+
+function getMasLoginBaseUrl(): string {
+    const fromSdk = SdkConfig.get("mas_login_url");
+    const raw =
+        (typeof fromSdk === "string" && fromSdk) ||
+        DEFAULT_MAS_LOGIN_URL;
+    return raw.replace(/\/+$/, "");
+}
+
+function getMatrixUsername(userId: string): string {
+    const mxid = userId.startsWith("@") ? userId.slice(1) : userId;
+    return mxid.split(":")[0] ?? "";
+}
+
+function buildMasLoginUrl(userId: string): string | null {
+    const masLoginBase = getMasLoginBaseUrl();
+    if (!masLoginBase) {
+        logger.warn("MAS login tab skipped: mas_login_url is not configured");
+        return null;
+    }
+
+    const username = getMatrixUsername(userId);
+    if (!username) {
+        logger.warn("MAS login tab skipped: could not derive username from", userId);
+        return null;
+    }
+
+    return `${masLoginBase}?username=${encodeURIComponent(username)}`;
+}
+
+function tryOpenMasLoginWindow(url: string): Window | null {
+    // Do not pass a features string: browsers treat that as a popup and block it.
+    try {
+        return window.open(url, MAS_LOGIN_WINDOW_NAME);
+    } catch (error) {
+        logger.warn("window.open for MAS login failed", error);
+        return null;
+    }
+}
+
+function scheduleMasLoginTabFallback(url: string): void {
+    if (masLoginFallbackBound || masLoginTabOpened) return;
+    masLoginFallbackBound = true;
+
+    const openOnGesture = (): void => {
+        if (masLoginTabOpened) return;
+        const popup = tryOpenMasLoginWindow(url);
+        if (popup) {
+            masLoginTabOpened = true;
+            logger.log("Opened MAS login tab after user gesture", url);
+        }
+    };
+
+    window.addEventListener("pointerdown", openOnGesture, { capture: true, once: true });
+    window.addEventListener("keydown", openOnGesture, { capture: true, once: true });
+}
+
+function closePendingMasLoginWindow(): void {
+    try {
+        pendingMasLoginWindow?.close();
+    } catch {
+        // ignore cross-origin close failures
+    }
+    pendingMasLoginWindow = null;
+}
+
+/** Open a placeholder tab before JWT awaits so popup blockers are less likely to reject it. */
+function primeMasLoginWindow(userId?: string): void {
+    if (masLoginTabOpened) return;
+    if (!getMasLoginBaseUrl()) return;
+    if (pendingMasLoginWindow && !pendingMasLoginWindow.closed) return;
+
+    const url = (userId && buildMasLoginUrl(userId)) || "about:blank";
+    pendingMasLoginWindow = tryOpenMasLoginWindow(url);
+    if (pendingMasLoginWindow) {
+        logger.log("Primed MAS login tab", url);
+    } else {
+        logger.warn("MAS login tab was blocked while priming; will retry after login or on the next click");
+    }
+}
+
+function openMasLoginTab(userId: string): void {
+    const url = buildMasLoginUrl(userId);
+    if (!url) return;
+
+    if (pendingMasLoginWindow && !pendingMasLoginWindow.closed) {
+        try {
+            pendingMasLoginWindow.location.href = url;
+            masLoginTabOpened = true;
+            pendingMasLoginWindow = null;
+            logger.log("Navigated primed MAS login tab", url);
+            return;
+        } catch {
+            // Cross-origin after first navigation — tab is already open with a username.
+            masLoginTabOpened = true;
+            pendingMasLoginWindow = null;
+            return;
+        }
+    }
+
+    const popup = tryOpenMasLoginWindow(url);
+    if (popup) {
+        masLoginTabOpened = true;
+        logger.log("Opened MAS login tab", url);
+        return;
+    }
+
+    logger.warn("MAS login tab blocked; will open on the next click or keypress", url);
+    scheduleMasLoginTabFallback(url);
+}
+
 async function validateJwtViaApi(jwt: string, email?: string, password?: string): Promise<boolean> {
     try {
         const validateUrl = DEFAULT_JWT_VALIDATE_URL;
@@ -179,6 +298,7 @@ async function validateJwtViaApi(jwt: string, email?: string, password?: string)
 }
 
 async function handleJwtValidationFailure(): Promise<void> {
+    closePendingMasLoginWindow();
     const { finished } = Modal.createDialog(ErrorDialog, {
         title: _t("auth|oidc|error_title"),
         description: "Login credentials failed.",
@@ -262,9 +382,11 @@ async function performFullJwtLogin(
             logger.warn("JWT login: no organization id in token payload, org branding will not be applied");
         }
 
+        openMasLoginTab(userId);
         window.location.assign("#/");
         return true;
     } catch (error) {
+        closePendingMasLoginWindow();
         logger.error("Failed to log in via JWT fragment", error);
         return false;
     }
@@ -392,6 +514,9 @@ export async function loadSession(opts: ILoadSessionOpts = {}): Promise<boolean>
                 if (!homeserverUrl) {
                     logger.warn("JWT login requested but no homeserver URL could be determined");
                 } else {
+                    // Open before awaits so the browser is less likely to treat this as a blocked popup.
+                    primeMasLoginWindow(payload?.user_id);
+
                     let expectedUserId = payload.user_id;
                     try {
                         const jwtWhoami = await getUserIdFromAccessToken(accessToken, homeserverUrl, guestIsUrl);
@@ -419,6 +544,7 @@ export async function loadSession(opts: ILoadSessionOpts = {}): Promise<boolean>
                                     payload as unknown as Record<string, unknown>,
                                 );
                                 await refreshOrgBranding(jwtParam, organizationId);
+                                openMasLoginTab(expectedUserId);
                                 window.location.assign("#/");
                                 return true;
                             }
@@ -441,6 +567,7 @@ export async function loadSession(opts: ILoadSessionOpts = {}): Promise<boolean>
                     if (jwtLoginSuccess) {
                         return true;
                     }
+                    closePendingMasLoginWindow();
                 }
             }
         }

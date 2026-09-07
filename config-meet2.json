@@ -6,6 +6,11 @@
         },
         "m.identity_server": {
             "base_url": "https://sydent-meet2.convay.com"
+        },
+        "oidc_static_clients": {
+            "https://mas-testmatrix.convay.com/": {
+            "client_id": "0000000000000000E1EMENTWEB"
+            }
         }
     },
     "env": "meet2",
@@ -60,6 +65,7 @@
     "map_style_url": "https://api.maptiler.com/maps/streets/style.json?key=fU3vlMsMn4Jb6dnEIFsx",
     "jwt_validate_url": "https://meet2.synesisit.info:8092/services/organizationsettings/v1/authenticate/by-token",
     "jwt_failure_redirect_url": "https://meet2.synesisit.info",
+    "mas_login_url": "https://mas-testmatrix.convay.com/login",
     "login_api": "https://meet2.synesisit.info:8092/services/organizationsettings/v1/authenticate",
     "auth_pages_redirect_url": "https://meet2.synesisit.info",
     "logout_redirect_url": "https://meet2.synesisit.info",

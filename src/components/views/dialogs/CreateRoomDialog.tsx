@@ -279,6 +279,11 @@ export default class CreateRoomDialog extends React.Component<IProps, IState> {
                 test: async ({ value }) => !!value,
                 invalid: () => _t("create_room|name_validation_required"),
             },
+            {
+                key: "maxLength",
+                test: async ({ value }) => !value || value.length <= 100,
+                invalid: () => _t("create_room|name_validation_too_long"),
+            },
         ],
     });
 

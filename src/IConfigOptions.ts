@@ -131,7 +131,6 @@ export interface IConfigOptions {
     auth_signup_url?: string;
     jwt_validate_url?: string;
     jwt_failure_redirect_url?: string;
-    mas_login_url?: string;
     login_api?: string;
     /** Base URL for org appearance branding, e.g. .../services/dashboard/api */
     branding_api_base_url?: string;

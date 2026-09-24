@@ -684,7 +684,6 @@
         "join_rule_restricted": "Visible to space members",
         "join_rule_restricted_label": "Everyone in <SpaceName/> will be able to find and join this room.",
         "name_validation_required": "Please enter a name for the room",
-        "name_validation_too_long": "Room name must be smaller than 100 characters",
         "room_visibility_label": "Room visibility",
         "state_encrypted_warning": "Enables experimental support for encrypting state events, which hides metadata such as room names and topics from the server. This metadata will also be hidden from people joining rooms later, and people whose clients do not support MSC4362.",
         "state_encryption_label": "Encrypt state events",

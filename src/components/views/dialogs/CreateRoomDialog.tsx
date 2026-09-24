@@ -139,7 +139,7 @@ export default class CreateRoomDialog extends React.Component<IProps, IState> {
         const opts: IOpts = {};
         const createOpts: IOpts["createOpts"] = (opts.createOpts = {});
         opts.roomType = this.props.type;
-        opts.name = this.state.name.trim();
+        opts.name = this.state.name;
 
         if (this.state.joinRule === JoinRule.Public) {
             createOpts.visibility = Visibility.Public;
@@ -276,13 +276,8 @@ export default class CreateRoomDialog extends React.Component<IProps, IState> {
         rules: [
             {
                 key: "required",
-                test: async ({ value }) => !!value?.trim(),
+                test: async ({ value }) => !!value,
                 invalid: () => _t("create_room|name_validation_required"),
-            },
-            {
-                key: "maxLength",
-                test: async ({ value }) => !value || value.length <= 100,
-                invalid: () => _t("create_room|name_validation_too_long"),
             },
         ],
     });

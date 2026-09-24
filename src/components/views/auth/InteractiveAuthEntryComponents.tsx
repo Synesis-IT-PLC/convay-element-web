@@ -28,7 +28,6 @@ import { EncryptionCard } from "../settings/encryption/EncryptionCard.tsx";
 import SdkConfig from "../../../SdkConfig";
 import { authenticateViaLoginApi } from "../../../utils/authenticateViaLoginApi";
 import { getMatrixPassword } from "../../../utils/matrixPassword";
-import { MatrixClientPeg } from "../../../MatrixClientPeg";
 
 /* This file contains a collection of components which are used by the
  * InteractiveAuth to prompt the user to enter the information needed
@@ -1004,53 +1003,6 @@ export enum CustomAuthType {
     MasCrossSigningReset = "org.matrix.cross_signing_reset",
 }
 
-function getMatrixUsernameFromClient(client: MatrixClient): string | undefined {
-    const pegClient = MatrixClientPeg.get();
-    const userId =
-        client.credentials?.userId ||
-        (typeof client.getUserId === "function" ? client.getUserId() : null) ||
-        (typeof pegClient?.getUserId === "function" ? pegClient.getUserId() : null) ||
-        undefined;
-    if (!userId) return undefined;
-    const localpart = (userId.startsWith("@") ? userId.slice(1) : userId).split(":")[0];
-    return localpart || undefined;
-}
-
-/**
- * MAS redirects unauthenticated /account/ visitors to /login and drops unknown
- * query params. Open the login URL ourselves so `username` survives.
- */
-function toMasLoginUrl(rawUrl: string, username?: string): string {
-    let accountUrl: URL;
-    try {
-        accountUrl = new URL(rawUrl);
-    } catch {
-        if (!username) return rawUrl;
-        const separator = rawUrl.includes("?") ? "&" : "?";
-        return `${rawUrl}${separator}username=${encodeURIComponent(username)}`;
-    }
-
-    const isAccountPath = /^\/account\/?$/.test(accountUrl.pathname);
-    if (isAccountPath) {
-        const configuredLogin = SdkConfig.get("mas_login_url");
-        const loginBase =
-            (typeof configuredLogin === "string" && configuredLogin) || `${accountUrl.origin}/login`;
-        const loginUrl = new URL(loginBase);
-        const action = accountUrl.searchParams.get("action") ?? CustomAuthType.MasCrossSigningReset;
-        loginUrl.searchParams.set("kind", "manage_account");
-        loginUrl.searchParams.set("action", action);
-        if (username) {
-            loginUrl.searchParams.set("username", username);
-        }
-        return loginUrl.toString();
-    }
-
-    if (username) {
-        accountUrl.searchParams.set("username", username);
-    }
-    return accountUrl.toString();
-}
-
 export class MasUnlockCrossSigningAuthEntry extends FallbackAuthEntry<{
     stageParams?: {
         url?: string;
@@ -1059,22 +1011,9 @@ export class MasUnlockCrossSigningAuthEntry extends FallbackAuthEntry<{
     public static readonly LOGIN_TYPE = AuthType.OAuth;
     public static readonly UNSTABLE_LOGIN_TYPE = CustomAuthType.MasCrossSigningReset;
 
-    private getAccountManagementUrl(): string | undefined {
-        const rawUrl = this.props.stageParams?.url;
-        if (!rawUrl) return undefined;
-
-        const username = getMatrixUsernameFromClient(this.props.matrixClient);
-        if (!username) {
-            logger.warn("MAS account URL opened without username; could not resolve Matrix user id");
-        }
-        return toMasLoginUrl(rawUrl, username);
-    }
-
     private onGoToAccountClick = (): void => {
-        const accountUrl = this.getAccountManagementUrl();
-        if (!accountUrl) return;
-        logger.info("Opening account URL", { accountUrl });
-        this.popupWindow = window.open(accountUrl, "_blank");
+        if (!this.props.stageParams?.url) return;
+        this.popupWindow = window.open(this.props.stageParams.url, "_blank");
     };
 
     private onRetryClick = (): void => {

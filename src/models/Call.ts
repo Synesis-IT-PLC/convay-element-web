@@ -49,7 +49,7 @@ const TIMEOUT_MS = 16000;
 const logger = rootLogger.getChild("models/Call");
 
 // Recipient Busy or user's IN_CALL_STATUS check
-export const IN_CALL_PRESENCE_STATUS = "io.element.in_call";
+// export const IN_CALL_PRESENCE_STATUS = "io.element.in_call";
 
 // Waits until an event is emitted satisfying the given predicate
 const waitForEvent = async (
@@ -277,9 +277,9 @@ export abstract class Call extends TypedEventEmitter<CallEvent, CallEventHandler
         this.connectionState = ConnectionState.Connected;
 
         // Signal to other users that we are in a call via presence status_msg
-        this.client.setPresence({ presence: "online", status_msg: IN_CALL_PRESENCE_STATUS }).catch((err) => {
-            logger.warn("Failed to set in-call presence:", err);
-        });
+        // this.client.setPresence({ presence: "online", status_msg: IN_CALL_PRESENCE_STATUS }).catch((err) => {
+        //     logger.warn("Failed to set in-call presence:", err);
+        // });
     }
 
     /**
@@ -291,9 +291,9 @@ export abstract class Call extends TypedEventEmitter<CallEvent, CallEventHandler
         this.connectionState = ConnectionState.Disconnected;
 
         // Clear in-call presence status_msg
-        this.client.setPresence({ presence: "online", status_msg: "available" }).catch((err) => {
-            logger.warn("Failed to clear in-call presence:", err);
-        });
+        // this.client.setPresence({ presence: "online", status_msg: "available" }).catch((err) => {
+        //     logger.warn("Failed to clear in-call presence:", err);
+        // });
     }
 
     /**
@@ -603,6 +603,8 @@ export class JitsiCall extends Call {
 export enum ElementCallIntent {
     StartCall = "start_call",
     JoinExisting = "join_existing",
+    StartCallVoice = "start_call_voice",
+    JoinExistingVoice = "join_existing_voice",
     StartCallDM = "start_call_dm",
     StartCallDMVoice = "start_call_dm_voice",
     JoinExistingDM = "join_existing_dm",
@@ -702,12 +704,14 @@ export class ElementCall extends Call {
                 params.append("preload", "false");
             }
         } else {
-            // Group chats do not have a voice option.
             if (hasCallStarted) {
-                params.append("intent", ElementCallIntent.JoinExisting);
+                params.append(
+                    "intent",
+                    voiceOnly ? ElementCallIntent.JoinExistingVoice : ElementCallIntent.JoinExisting,
+                );
                 params.append("preload", "false");
             } else {
-                params.append("intent", ElementCallIntent.StartCall);
+                params.append("intent", voiceOnly ? ElementCallIntent.StartCallVoice : ElementCallIntent.StartCall);
                 params.append("preload", "false");
             }
         }
@@ -869,9 +873,9 @@ export class ElementCall extends Call {
                 }
             } else {
                 if (hasCallStarted) {
-                    return ElementCallIntent.JoinExisting;
+                    return voiceOnly ? ElementCallIntent.JoinExistingVoice : ElementCallIntent.JoinExisting;
                 } else {
-                    return ElementCallIntent.StartCall;
+                    return voiceOnly ? ElementCallIntent.StartCallVoice : ElementCallIntent.StartCall;
                 }
             }
         }
@@ -922,6 +926,7 @@ export class ElementCall extends Call {
             this.onCallEncryptionSettingsChange.bind(this),
         );
         this.updateParticipants();
+        this.callType = this.resolveCallTypeFromSession();
     }
 
     public static get(room: Room, voiceOnly?: boolean): ElementCall | null {
@@ -1008,9 +1013,21 @@ export class ElementCall extends Call {
         if (this.session.memberships.length === 0 && !this.presented && !this.room.isCallRoom()) this.destroy();
     };
 
+    private resolveCallTypeFromSession(): CallType {
+        const consensus = this.session.getConsensusCallIntent();
+        if (consensus === "audio") return CallType.Voice;
+        if (consensus === "video") return CallType.Video;
+
+        const initiatorIntent = this.session.getOldestMembership()?.callIntent;
+        if (initiatorIntent === "audio") return CallType.Voice;
+        if (initiatorIntent === "video") return CallType.Video;
+
+        return CallType.Video;
+    }
+
     private readonly onMembershipChanged = (): void => {
         this.updateParticipants();
-        this.callType = this.session.getConsensusCallIntent() === "audio" ? CallType.Voice : CallType.Video;
+        this.callType = this.resolveCallTypeFromSession();
     };
 
     private updateParticipants(): void {

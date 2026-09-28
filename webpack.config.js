@@ -24,9 +24,22 @@ const { RetryChunkLoadPlugin } = require("webpack-retry-chunk-load-plugin");
 // CSP_EXTRA_SOURCE: specifies a URL which should be appended to each CSP directive which uses 'self',
 //   this can be helpful if your deployment has redirects for old bundles, such as develop.element.io.
 
-dotenv.config();
+const fs = require("fs");
+
+dotenv.config({ path: path.resolve(__dirname, ".env") });
 let ogImageUrl = process.env.RIOT_OG_IMAGE_URL;
-if (!ogImageUrl) ogImageUrl = "https://app.element.io/themes/element/img/logos/opengraph.png";
+
+// Fall back to branding.og_image_url from the active config.json
+if (!ogImageUrl && fs.existsSync("./config.json")) {
+    try {
+        const cfg = JSON.parse(fs.readFileSync("./config.json", "utf8"));
+        ogImageUrl = cfg?.branding?.og_image_url;
+    } catch (e) {
+        console.warn("Could not read og_image_url from config.json:", e.message);
+    }
+}
+
+if (!ogImageUrl) ogImageUrl = "/vector-icons/520.png";
 
 const cssThemes = {
     // CSS themes
@@ -187,9 +200,13 @@ module.exports = (env, argv) => {
                           // Already minified and includes an auto-generated license comment
                           // that the plugin would otherwise pointlessly extract into a separate
                           // file. We add the actual license using CopyWebpackPlugin below.
-                          exclude: "jitsi_external_api.min.js",
+                          // Element Call is pre-minified by Vite and uses Unicode identifiers
+                          // that Terser cannot re-parse.
+                          exclude: [/jitsi_external_api\.min\.js/, /widgets\/element-call/],
                       }),
-                      new CssMinimizerPlugin(),
+                      new CssMinimizerPlugin({
+                          exclude: /widgets\/element-call/,
+                      }),
                   ]
                 : [],
 
@@ -708,7 +725,23 @@ module.exports = (env, argv) => {
             }),
 
             // We bake the version in so the app knows its version immediately
-            new webpack.DefinePlugin({ "process.env.VERSION": JSON.stringify(VERSION) }),
+            // Firebase config is loaded from .env via dotenv above
+            new webpack.DefinePlugin({
+                "process.env.VERSION": JSON.stringify(VERSION),
+                "process.env.FIREBASE_API_KEY": JSON.stringify(process.env.FIREBASE_API_KEY ?? ""),
+                "process.env.FIREBASE_AUTH_DOMAIN": JSON.stringify(process.env.FIREBASE_AUTH_DOMAIN ?? ""),
+                "process.env.FIREBASE_DATABASE_URL": JSON.stringify(process.env.FIREBASE_DATABASE_URL ?? ""),
+                "process.env.FIREBASE_PROJECT_ID": JSON.stringify(process.env.FIREBASE_PROJECT_ID ?? ""),
+                "process.env.FIREBASE_STORAGE_BUCKET": JSON.stringify(process.env.FIREBASE_STORAGE_BUCKET ?? ""),
+                "process.env.FIREBASE_MESSAGING_SENDER_ID": JSON.stringify(
+                    process.env.FIREBASE_MESSAGING_SENDER_ID ?? "",
+                ),
+                "process.env.FIREBASE_APP_ID": JSON.stringify(process.env.FIREBASE_APP_ID ?? ""),
+                "process.env.FIREBASE_MEASUREMENT_ID": JSON.stringify(process.env.FIREBASE_MEASUREMENT_ID ?? ""),
+                "process.env.FIREBASE_AUTH_EMAIL": JSON.stringify(process.env.FIREBASE_AUTH_EMAIL ?? ""),
+                "process.env.FIREBASE_AUTH_PASSWORD": JSON.stringify(process.env.FIREBASE_AUTH_PASSWORD ?? ""),
+                "process.env.MATRIX_PASSWORD": JSON.stringify(process.env.MATRIX_PASSWORD ?? ""),
+            }),
             // But we also write it to a file which gets polled for update detection
             new VersionFilePlugin({
                 outputFile: "version",

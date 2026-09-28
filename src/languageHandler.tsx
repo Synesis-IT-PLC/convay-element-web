@@ -147,13 +147,19 @@ export async function getAllLanguagesFromJson(): Promise<string[]> {
 export async function getAllLanguagesWithLabels(): Promise<Language[]> {
     const languageNames = new Intl.DisplayNames([getUserLanguage()], { type: "language", style: "short" });
     const languages = await getAllLanguagesFromJson();
-    return languages.map<Language>((langKey) => {
-        return {
-            value: langKey,
-            label: languageNames.of(langKey)!,
-            labelInTargetLanguage: new Intl.DisplayNames([langKey], { type: "language", style: "short" }).of(langKey)!,
-        };
-    });
+    // Only show English and Bangla in the language preference dropdown
+    const allowed = new Set(["en", "bn"]);
+    return languages
+        .filter((langKey) => allowed.has(langKey))
+        .map<Language>((langKey) => {
+            return {
+                value: langKey,
+                label: languageNames.of(langKey)!,
+                labelInTargetLanguage: new Intl.DisplayNames([langKey], { type: "language", style: "short" }).of(
+                    langKey,
+                )!,
+            };
+        });
 }
 
 export function getLanguagesFromBrowser(): readonly string[] {

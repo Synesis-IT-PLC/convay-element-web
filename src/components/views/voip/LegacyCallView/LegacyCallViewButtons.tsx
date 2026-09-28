@@ -16,12 +16,12 @@ import {
     ChevronUpIcon,
     DialPadIcon,
     EndCallIcon,
-    ListViewIcon,
+    LeftPanelCloseIcon,
+    LeftPanelOpenIcon,
     MicOffSolidIcon,
     MicOnSolidIcon,
     OverflowHorizontalIcon,
     ShareScreenSolidIcon,
-    SpotlightViewIcon,
     VideoCallOffSolidIcon,
     VideoCallSolidIcon,
 } from "@vector-im/compound-design-tokens/assets/web/icons";
@@ -332,9 +332,9 @@ export default class LegacyCallViewButtons extends React.Component<IProps, IStat
                         state={this.props.buttonsState.sidebarShown}
                         className="mx_LegacyCallViewButtons_button_sidebar"
                         onLabel={_t("voip|hide_sidebar_button")}
-                        onIcon={<ListViewIcon />}
+                        onIcon={<LeftPanelCloseIcon />}
                         offLabel={_t("voip|show_sidebar_button")}
-                        offIcon={<SpotlightViewIcon />}
+                        offIcon={<LeftPanelOpenIcon />}
                         onClick={this.props.handlers.onToggleSidebarClick}
                     />
                 )}

@@ -8,6 +8,7 @@
 import React, { type JSX } from "react";
 import { type Room } from "matrix-js-sdk/src/matrix";
 import PublicIcon from "@vector-im/compound-design-tokens/assets/web/icons/public";
+import LockSolidIcon from "@vector-im/compound-design-tokens/assets/web/icons/lock-solid";
 import VideoIcon from "@vector-im/compound-design-tokens/assets/web/icons/video-call-solid";
 import ArrowDownIcon from "@vector-im/compound-design-tokens/assets/web/icons/arrow-down";
 import OnlineOrUnavailableIcon from "@vector-im/compound-design-tokens/assets/web/icons/presence-solid-8x8";
@@ -134,6 +135,16 @@ function getAvatarDecoration(decoration: AvatarBadgeDecoration, presence: Presen
                 aria-label={getDecorationLabel(decoration, presence)}
             />
         );
+    } else if (decoration === AvatarBadgeDecoration.PrivateRoom) {
+        return (
+            <LockSolidIcon
+                width="16px"
+                height="16px"
+                className="mx_RoomAvatarView_icon"
+                color="var(--cpd-color-icon-info-primary)"
+                aria-label={getDecorationLabel(decoration, presence)}
+            />
+        );
     } else if (decoration === AvatarBadgeDecoration.Presence) {
         return getPresenceDecoration(presence!);
     }
@@ -151,6 +162,8 @@ function getDecorationLabel(decoration: AvatarBadgeDecoration, presence: Presenc
             return _t("room|video_room");
         case AvatarBadgeDecoration.PublicRoom:
             return _t("room|header|room_is_public");
+        case AvatarBadgeDecoration.PrivateRoom:
+            return _t("room|header|room_is_private");
         case AvatarBadgeDecoration.Presence:
             return getPresenceLabel(presence!);
     }

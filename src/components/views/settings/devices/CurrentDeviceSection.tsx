@@ -71,12 +71,12 @@ const CurrentDeviceSectionHeading: React.FC<CurrentDeviceSectionHeadingProps> = 
     ];
     return (
         <SettingsSubsectionHeading heading={_t("settings|sessions|current_session")}>
-            <KebabContextMenu
+            {/* <KebabContextMenu
                 disabled={disabled}
                 title={_t("common|options")}
                 options={menuOptions}
                 data-testid="current-session-menu"
-            />
+            /> */}
         </SettingsSubsectionHeading>
     );
 };

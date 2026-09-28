@@ -125,6 +125,9 @@ export class ElementWidgetDriver extends WidgetDriver {
             this.allowedCapabilities.add(MatrixCapabilities.MSC4157SendDelayedEvent);
             this.allowedCapabilities.add(MatrixCapabilities.MSC4157UpdateDelayedEvent);
             this.allowedCapabilities.add(MatrixCapabilities.MSC4354SendStickyEvent);
+            this.allowedCapabilities.add("org.matrix.msc4407.send.sticky_event");
+            this.allowedCapabilities.add("org.matrix.msc4407.receive.sticky_event");
+            this.allowedCapabilities.add("org.matrix.msc4039.download_file");
 
             this.allowedCapabilities.add(
                 WidgetEventCapability.forStateEvent(EventDirection.Receive, EventType.RoomName).raw,

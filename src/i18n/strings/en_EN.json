@@ -684,6 +684,7 @@
         "join_rule_restricted": "Visible to space members",
         "join_rule_restricted_label": "Everyone in <SpaceName/> will be able to find and join this room.",
         "name_validation_required": "Please enter a name for the room",
+        "name_validation_too_long": "Room name must be smaller than 100 characters",
         "room_visibility_label": "Room visibility",
         "state_encrypted_warning": "Enables experimental support for encrypting state events, which hides metadata such as room names and topics from the server. This metadata will also be hidden from people joining rooms later, and people whose clients do not support MSC4362.",
         "state_encryption_label": "Encrypt state events",
@@ -2534,7 +2535,7 @@
         "warning_kind_files": "This version of %(brand)s does not support viewing some encrypted files",
         "warning_kind_files_app": "Use the <a>Desktop app</a> to see all encrypted files",
         "warning_kind_search": "This version of %(brand)s does not support searching encrypted messages",
-        "warning_kind_search_app": "Use the <a>Desktop app</a> to search encrypted messages"
+        "warning_kind_search_app": "You can not search messages in Encrypted Room"
     },
     "setting": {
         "help_about": {
@@ -3988,6 +3989,8 @@
         "call_held": "%(peerName)s held the call",
         "call_held_resume": "You held the call <a>Resume</a>",
         "call_held_switch": "You held the call <a>Switch</a>",
+        "call_recording_failed_description": "Unable to start or save the call recording. Make sure your browser allows tab capture, then try again.",
+        "call_recording_failed_title": "Call recording failed",
         "call_toast_unknown_room": "Unknown room",
         "camera_disabled": "Your camera is turned off",
         "camera_enabled": "Your camera is still enabled",
@@ -4046,11 +4049,16 @@
         "screenshare_title": "Share content",
         "screenshare_window": "Application window",
         "show_sidebar_button": "Show sidebar",
+        "record": "Record",
         "silence": "Silence call",
         "silenced": "Notifications silenced",
         "skip_lobby_toggle_option": "Join immediately",
+        "start_call_recording": "Record call",
         "start_screenshare": "Start sharing your screen",
+        "stop_call_recording": "Stop recording",
         "stop_screenshare": "Stop sharing your screen",
+        "user_started_call_recording": "%(name)s is recording this call",
+        "user_stopped_call_recording": "%(name)s stopped recording this call",
         "too_many_calls": "Too Many Calls",
         "too_many_calls_description": "You've reached the maximum number of simultaneous calls.",
         "transfer_consult_first_label": "Consult first",
@@ -4078,7 +4086,7 @@
         "you_are_presenting": "You are presenting"
     },
     "web_default_device_name": "%(appName)s: %(browserName)s on %(osName)s",
-    "welcome_to_element": "Welcome to Element",
+    "welcome_to_element": "Welcome! Sign in & Start Chatting",
     "widget": {
         "added_by": "Widget added by",
         "capabilities_dialog": {

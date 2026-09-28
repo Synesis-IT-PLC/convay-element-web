@@ -350,6 +350,11 @@ export enum Action {
     ClientStarted = "client_started",
 
     /**
+     * Fired after org branding (title, favicon, logo) has been applied from the API.
+     */
+    OrgBrandingUpdated = "org_branding_updated",
+
+    /**
      * Overwrites the existing login with fresh session credentials. Use with a OverwriteLoginPayload.
      */
     OverwriteLogin = "overwrite_login",

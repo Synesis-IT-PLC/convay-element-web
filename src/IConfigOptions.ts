@@ -45,10 +45,12 @@ export interface IConfigOptions {
     disable_login_language_selector?: boolean;
     disable_3pid_login?: boolean;
 
+    env?: string;
     brand: string;
     branding?: {
         welcome_background_url?: string | string[]; // chosen at random if array
         auth_header_logo_url?: string;
+        og_image_url?: string;
         auth_footer_links?: { text: string; url: string }[];
     };
 
@@ -125,6 +127,15 @@ export interface IConfigOptions {
 
     logout_redirect_url?: string;
     auth_pages_redirect_url?: string;
+    auth_signin_url?: string;
+    auth_signup_url?: string;
+    jwt_validate_url?: string;
+    jwt_failure_redirect_url?: string;
+    login_api?: string;
+    /** Base URL for org appearance branding, e.g. .../services/dashboard/api */
+    branding_api_base_url?: string;
+    /** Base URL for branding file downloads, e.g. .../services/file-service/file */
+    file_service_base_url?: string;
 
     // sso_immediate_redirect is deprecated in favour of sso_redirect_options.immediate
     sso_immediate_redirect?: boolean;

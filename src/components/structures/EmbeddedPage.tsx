@@ -103,6 +103,21 @@ export default class EmbeddedPage extends React.PureComponent<IProps, IState> {
         this.dispatcherRef = dis.register(this.onAction);
     }
 
+    public componentDidUpdate(prevProps: IProps): void {
+        if (!this.props.url) {
+            return;
+        }
+
+        const prevLogo = prevProps.replaceMap?.$logoUrl;
+        const nextLogo = this.props.replaceMap?.$logoUrl;
+        const prevBrand = prevProps.replaceMap?.$brand;
+        const nextBrand = this.props.replaceMap?.$brand;
+
+        if (prevLogo !== nextLogo || prevBrand !== nextBrand) {
+            this.fetchEmbed();
+        }
+    }
+
     public componentWillUnmount(): void {
         this.unmounted = true;
         dis.unregister(this.dispatcherRef);
@@ -112,6 +127,8 @@ export default class EmbeddedPage extends React.PureComponent<IProps, IState> {
         // HACK: Workaround for the context's MatrixClient not being set up at render time.
         if (payload.action === Action.ClientStarted) {
             this.forceUpdate();
+        } else if (payload.action === Action.OrgBrandingUpdated) {
+            this.fetchEmbed();
         }
     };
 

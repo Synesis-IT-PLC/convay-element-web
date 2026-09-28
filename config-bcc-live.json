@@ -1,20 +1,20 @@
 {
     "default_server_config": {
         "m.homeserver": {
-            "base_url": "https://matrix.convay.com",
-            "server_name": "matrix.convay.com"
+            "base_url": "https://chatserver.bcc.gov.bd",
+            "server_name": "chatserver.bcc.gov.bd"
         },
         "m.identity_server": {
-            "base_url": "https://invite.convay.com"
+            "base_url": "https://identity.bcc.gov.bd"
         }
     },
-    "env": "production",
     "disable_custom_urls": false,
     "disable_guests": false,
     "disable_login_language_selector": false,
     "disable_3pid_login": true,
     "force_verification": false,
-    "brand": "Convay Chat",
+    "env": "bcc-live",
+    "brand": "UCT Chat",
     "integrations_ui_url": "https://scalar.vector.im/",
     "integrations_rest_url": "https://scalar.vector.im/api",
     "integrations_widgets_urls": [
@@ -23,7 +23,7 @@
         "https://scalar-staging.vector.im/_matrix/integrations/v1",
         "https://scalar-staging.vector.im/api"
     ],
-    "permalink_prefix": "https://message.convay.com",
+    "permalink_prefix": "https://message.bcc.gov.bd",
     "default_widget_container_height": 280,
     "default_country_code": "GB",
     "show_labs_settings": false,
@@ -44,26 +44,25 @@
     "setting_defaults": {
         "breadcrumbs": true
     },
-    "jitsi": {
-    },
+    "jitsi": {},
     "element_call": {
-        "brand": "Convay Chat",
+        "brand": "UCT Chat",
         "use_exclusively": true
     },
     "branding": {
-        "og_image_url": "vector-icons/520.png",
-        "auth_header_logo_url": "vector-icons/520.png",
+        "og_image_url": "vector-icons/520_uct.png",
+        "auth_header_logo_url": "vector-icons/520_uct.png",
         "welcomeBackgroundUrl": "themes/convay_auth_bg.png"
     },
     "livekit": {
-        "livekit_service_url": "https://livekit-prod.convay.com"
+        "livekit_service_url": "https://livekit-uct.bcc.gov.bd"
     },
     "map_style_url": "https://api.maptiler.com/maps/streets/style.json?key=fU3vlMsMn4Jb6dnEIFsx",
-    "jwt_validate_url": "https://convay.com/services/organizationsettings/v1/authenticate/by-token",
-    "jwt_failure_redirect_url": "https://convay.com",
-    "login_api": "https://convay.com/services/organizationsettings/v1/authenticate",
-    "auth_pages_redirect_url": "https://convay.com",
-    "logout_redirect_url": "https://convay.com",
-    "branding_api_base_url": "https://convay.com/services/dashboard/api",
-    "file_service_base_url": "https://convay.com/services/file-service/file"
+    "jwt_validate_url": "https://uct.bcc.gov.bd/services/organizationsettings/v1/authenticate/by-token",
+    "jwt_failure_redirect_url": "https://uct.bcc.gov.bd",
+    "login_api": "https://uct.bcc.gov.bd/services/organizationsettings/v1/authenticate",
+    "auth_pages_redirect_url": "https://uct.bcc.gov.bd",
+    "logout_redirect_url": "https://uct.bcc.gov.bd",
+    "branding_api_base_url": "https://uct.bcc.gov.bd/services/dashboard/api",
+    "file_service_base_url": "https://uct.bcc.gov.bd/services/file-service/file"
 }

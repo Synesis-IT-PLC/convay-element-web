@@ -18,6 +18,7 @@ import NotificationsIcon from "@vector-im/compound-design-tokens/assets/web/icon
 import VerifiedIcon from "@vector-im/compound-design-tokens/assets/web/icons/verified";
 import ErrorIcon from "@vector-im/compound-design-tokens/assets/web/icons/error-solid";
 import PublicIcon from "@vector-im/compound-design-tokens/assets/web/icons/public";
+import LockSolidIcon from "@vector-im/compound-design-tokens/assets/web/icons/lock-solid";
 import { JoinRule, type Room } from "matrix-js-sdk/src/matrix";
 import { type ViewRoomOpts } from "@matrix-org/react-sdk-module-api/lib/lifecycles/RoomViewLifecycle";
 import { Flex, Box } from "@element-hq/web-shared-components";
@@ -55,6 +56,9 @@ import { useScopedRoomContext } from "../../../../contexts/ScopedRoomContext.tsx
 import { ToggleableIcon } from "./toggle/ToggleableIcon.tsx";
 import { CurrentRightPanelPhaseContextProvider } from "../../../../contexts/CurrentRightPanelPhaseContext.tsx";
 import { LocalRoom } from "../../../../models/LocalRoom.ts";
+import { ElementCall } from "../../../../models/Call.ts";
+import { useCall } from "../../../../hooks/useCall.ts";
+import { CallRecordingControls } from "../../voip/CallRecordingControls.tsx";
 
 function RoomHeaderButtons({
     room,
@@ -97,6 +101,17 @@ function RoomHeaderButtons({
         [callOptions, voiceCallClick],
     );
 
+    const joinClick = useCallback(
+        (ev: React.MouseEvent) => {
+            if (activeCallSessionType === CallType.Voice) {
+                voiceCallClick(ev, callOptions[0]);
+            } else {
+                videoCallClick(ev, callOptions[0]);
+            }
+        },
+        [activeCallSessionType, callOptions, voiceCallClick, videoCallClick],
+    );
+
     const toggleCallButton = (
         <Tooltip label={isViewingCall ? _t("voip|minimise_call") : _t("voip|maximise_call")}>
             <IconButton onClick={toggleCall}>
@@ -114,7 +129,7 @@ function RoomHeaderButtons({
         >
             <Button
                 size="sm"
-                onClick={videoClick}
+                onClick={joinClick}
                 // If we know this is a voice session, show the voice call. All other kinds of call are video calls.
                 Icon={activeCallSessionType === CallType.Voice ? VoiceCallIcon : VideoCallIcon}
                 className="mx_RoomHeader_join_button"
@@ -289,6 +304,7 @@ function RoomHeaderButtons({
 
     const roomContext = useScopedRoomContext("mainSplitContentType");
     const isVideoRoom = calcIsVideoRoom(room);
+    const call = useCall(room.roomId);
     const showChatButton =
         isVideoRoom ||
         roomContext.mainSplitContentType === MainSplitContentType.MaximisedWidget ||
@@ -314,6 +330,8 @@ function RoomHeaderButtons({
             })}
 
             {isViewingCall && <CallGuestLinkButton room={room} />}
+
+            {isConnectedToCall && call instanceof ElementCall && <CallRecordingControls call={call} />}
 
             {activeCallSessionType && !isConnectedToCall && !isViewingCall ? (
                 joinCallButton
@@ -459,6 +477,18 @@ export default function RoomHeader({
                                             className="mx_RoomHeader_icon"
                                             color="var(--cpd-color-icon-info-primary)"
                                             aria-label={_t("common|public_room")}
+                                        />
+                                    </Tooltip>
+                                )}
+
+                                {!isDirectMessage && joinRule !== JoinRule.Public && (
+                                    <Tooltip label={_t("common|private_room")} placement="right">
+                                        <LockSolidIcon
+                                            width="16px"
+                                            height="16px"
+                                            className="mx_RoomHeader_icon"
+                                            color="var(--cpd-color-icon-info-primary)"
+                                            aria-label={_t("common|private_room")}
                                         />
                                     </Tooltip>
                                 )}

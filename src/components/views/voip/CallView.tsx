@@ -44,7 +44,7 @@ const JoinCallView: FC<JoinCallViewProps> = ({ room, resizing, call, role, onClo
         await Promise.all(calls.map(async (call) => await call.disconnect()));
     }, []);
 
-    const durationOverlay =
+    const callOverlay =
         call instanceof ElementCall ? (
             <div className="mx_CallView_callDuration">
                 <SessionClock session={call.session} />
@@ -62,7 +62,7 @@ const JoinCallView: FC<JoinCallViewProps> = ({ room, resizing, call, role, onClo
                 showMenubar={false}
                 pointerEvents={resizing ? "none" : undefined}
                 stickyPromise={disconnectAllOtherCalls}
-                overlay={durationOverlay}
+                overlay={callOverlay}
             />
         </div>
     );

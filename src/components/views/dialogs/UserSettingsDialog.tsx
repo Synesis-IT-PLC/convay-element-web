@@ -12,7 +12,7 @@ import { Toast } from "@vector-im/compound-web";
 import React, { type JSX, useState } from "react";
 // import UserProfileIcon from "@vector-im/compound-design-tokens/assets/web/icons/user-profile";
 import DevicesIcon from "@vector-im/compound-design-tokens/assets/web/icons/devices";
-// import VisibilityOnIcon from "@vector-im/compound-design-tokens/assets/web/icons/visibility-on";
+import VisibilityOnIcon from "@vector-im/compound-design-tokens/assets/web/icons/visibility-on";
 import NotificationsIcon from "@vector-im/compound-design-tokens/assets/web/icons/notifications";
 import PreferencesIcon from "@vector-im/compound-design-tokens/assets/web/icons/preferences";
 import KeyboardIcon from "@vector-im/compound-design-tokens/assets/web/icons/keyboard";
@@ -29,7 +29,7 @@ import { _t, _td } from "../../../languageHandler";
 // import AccountUserSettingsTab from "../settings/tabs/user/AccountUserSettingsTab";
 // import SettingsStore from "../../../settings/SettingsStore";
 // import LabsUserSettingsTab, { showLabsFlags } from "../settings/tabs/user/LabsUserSettingsTab";
-// import AppearanceUserSettingsTab from "../settings/tabs/user/AppearanceUserSettingsTab";
+import AppearanceUserSettingsTab from "../settings/tabs/user/AppearanceUserSettingsTab";
 import SecurityUserSettingsTab from "../settings/tabs/user/SecurityUserSettingsTab";
 import NotificationUserSettingsTab from "../settings/tabs/user/NotificationUserSettingsTab";
 import PreferencesUserSettingsTab from "../settings/tabs/user/PreferencesUserSettingsTab";
@@ -143,15 +143,15 @@ export default function UserSettingsDialog(props: IProps): JSX.Element {
                 undefined,
             ),
         );
-        // tabs.push(
-        //     new Tab(
-        //         UserTab.Appearance,
-        //         _td("common|appearance"),
-        //         <VisibilityOnIcon />,
-        //         <AppearanceUserSettingsTab />,
-        //         "UserSettingsAppearance",
-        //     ),
-        // );
+        tabs.push(
+            new Tab(
+                UserTab.Appearance,
+                _td("common|appearance"),
+                <VisibilityOnIcon />,
+                <AppearanceUserSettingsTab />,
+                "UserSettingsAppearance",
+            ),
+        );
         tabs.push(
             new Tab(
                 UserTab.Notifications,

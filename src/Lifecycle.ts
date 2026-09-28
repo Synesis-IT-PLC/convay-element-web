@@ -82,6 +82,9 @@ import {
 import { TokenRefresher } from "./utils/oidc/TokenRefresher";
 import { checkBrowserSupport } from "./SupportedBrowser";
 import baseConfig from "../config.json";
+import {fetchAndApplyOrgBranding, getOrganizationIdFromJwtPayload,
+    refreshOrgBranding,
+} from "./utils/applyOrgBranding";
 
 const HOMESERVER_URL_KEY = "mx_hs_url";
 const ID_SERVER_URL_KEY = "mx_is_url";
@@ -101,8 +104,14 @@ type JwtLoginPayload = {
     device_id?: string;
     home_server?: string;
     user_email?: string;
+    organization_id?: string;
+    organizationId?: string;
+    org_id?: string;
     data?: {
         user_email?: string;
+        organization_id?: string;
+        organizationId?: string;
+        org_id?: string;
     };
     well_known?: {
         "m.homeserver"?: {
@@ -141,6 +150,10 @@ function resolveJwtHomeserverUrl(payload: JwtLoginPayload, fallback?: string): s
     return fallback;
 }
 
+function normalizeHomeserverUrl(url: string): string {
+    return url.replace(/\/+$/, "");
+}
+
 async function validateJwtViaApi(jwt: string, email?: string, password?: string): Promise<boolean> {
     try {
         const validateUrl = DEFAULT_JWT_VALIDATE_URL;
@@ -174,6 +187,87 @@ async function handleJwtValidationFailure(): Promise<void> {
     await finished;
     const redirectUrl = DEFAULT_JWT_FAILURE_REDIRECT_URL;
     window.location.assign(redirectUrl);
+}
+
+async function hasStoredSession(): Promise<boolean> {
+    const { hsUrl, hasAccessToken, accessToken, userId } = await getStoredSessionVars();
+    return !!(hasAccessToken && accessToken && userId && hsUrl);
+}
+
+async function getWhoamiUserIdFromStoredSession(): Promise<string | null> {
+    const { hsUrl, isUrl, accessToken, userId, deviceId } = await getStoredSessionVars();
+    if (!accessToken || !userId || !hsUrl) {
+        return null;
+    }
+
+    const pickleKey = (await PlatformPeg.get()?.getPickleKey(userId, deviceId ?? "")) ?? undefined;
+    const decryptedAccessToken = await tryDecryptToken(pickleKey, accessToken, ACCESS_TOKEN_IV);
+
+    try {
+        const whoami = await getUserIdFromAccessToken(decryptedAccessToken, hsUrl, isUrl);
+        return whoami.user_id;
+    } catch {
+        return null;
+    }
+}
+
+async function performFullJwtLogin(
+    jwtParam: string,
+    payload: JwtLoginPayload,
+    accessToken: string,
+    homeserverUrl: string,
+    guestIsUrl: string | undefined,
+    fragmentQueryParams: QueryDict,
+): Promise<boolean> {
+    const email =
+        (payload?.data?.user_email as string | undefined) ??
+        (payload?.user_email as string | undefined) ??
+        (fragmentQueryParams.email as string | undefined) ??
+        (fragmentQueryParams.user_email as string | undefined);
+    const password =
+        (fragmentQueryParams.password as string | undefined) ??
+        (fragmentQueryParams.user_password as string | undefined);
+
+    const isValid = await validateJwtViaApi(jwtParam, email, password);
+    if (!isValid) {
+        await handleJwtValidationFailure();
+        return false;
+    }
+
+    try {
+        const { user_id: userId, device_id: deviceId, is_guest: isGuest } = await getUserIdFromAccessToken(
+            accessToken,
+            homeserverUrl,
+            guestIsUrl,
+        );
+        await setLoggedIn({
+            userId,
+            deviceId,
+            accessToken,
+            refreshToken: payload?.refresh_token,
+            homeserverUrl,
+            identityServerUrl: guestIsUrl,
+            guest: isGuest,
+        });
+
+        if (email) {
+            localStorage.setItem("mx_user_email", email);
+            console.log("[uia] persisted user email for login_api:", email);
+        }
+
+        const organizationId = getOrganizationIdFromJwtPayload(payload as unknown as Record<string, unknown>);
+        if (organizationId) {
+            await fetchAndApplyOrgBranding(jwtParam, organizationId);
+        } else {
+            logger.warn("JWT login: no organization id in token payload, org branding will not be applied");
+        }
+
+        window.location.assign("#/");
+        return true;
+    } catch (error) {
+        logger.error("Failed to log in via JWT fragment", error);
+        return false;
+    }
 }
 
 dis.register((payload) => {
@@ -294,41 +388,58 @@ export async function loadSession(opts: ILoadSessionOpts = {}): Promise<boolean>
             if (!accessToken) {
                 logger.warn("JWT login requested but payload has no access_token");
             } else {
-                const email =
-                    (payload?.data?.user_email as string | undefined) ??
-                    (payload?.user_email as string | undefined) ??
-                    (fragmentQueryParams.email as string | undefined) ??
-                    (fragmentQueryParams.user_email as string | undefined);
-                const password =
-                    (fragmentQueryParams.password as string | undefined) ??
-                    (fragmentQueryParams.user_password as string | undefined);
-
-                const isValid = await validateJwtViaApi(jwtParam, email, password);
-                if (!isValid) {
-                    await handleJwtValidationFailure();
-                    return false;
-                }
-
                 const homeserverUrl = resolveJwtHomeserverUrl(payload, guestHsUrl);
                 if (!homeserverUrl) {
                     logger.warn("JWT login requested but no homeserver URL could be determined");
                 } else {
+                    let expectedUserId = payload.user_id;
                     try {
-                        const { user_id: userId, device_id: deviceId, is_guest: isGuest } =
-                            await getUserIdFromAccessToken(accessToken, homeserverUrl, guestIsUrl);
-                        await setLoggedIn({
-                            userId,
-                            deviceId,
-                            accessToken,
-                            refreshToken: payload?.refresh_token,
-                            homeserverUrl,
-                            identityServerUrl: guestIsUrl,
-                            guest: isGuest,
-                        });
-                        window.location.assign("#/");
-                        return true;
+                        const jwtWhoami = await getUserIdFromAccessToken(accessToken, homeserverUrl, guestIsUrl);
+                        expectedUserId = jwtWhoami.user_id;
                     } catch (error) {
-                        logger.error("Failed to log in via JWT fragment", error);
+                        logger.warn("Could not resolve JWT user via whoami", error);
+                    }
+
+                    if (expectedUserId && (await hasStoredSession())) {
+                        const { hsUrl: storedHsUrl } = await getStoredSessionVars();
+                        const storedUserId = await getWhoamiUserIdFromStoredSession();
+                        const homeserversMatch =
+                            !!storedHsUrl &&
+                            normalizeHomeserverUrl(storedHsUrl) === normalizeHomeserverUrl(homeserverUrl);
+
+                        if (storedUserId === expectedUserId && homeserversMatch) {
+                            logger.log(
+                                `JWT session matches stored session (${expectedUserId} @ ${homeserverUrl}), restoring`,
+                            );
+                            const restored = await restoreSessionFromStorage({
+                                ignoreGuest: Boolean(opts.ignoreGuest),
+                            });
+                            if (restored) {
+                                const organizationId = getOrganizationIdFromJwtPayload(
+                                    payload as unknown as Record<string, unknown>,
+                                );
+                                await refreshOrgBranding(jwtParam, organizationId);
+                                window.location.assign("#/");
+                                return true;
+                            }
+                        } else {
+                            logger.log(
+                                `JWT session mismatch (user: ${expectedUserId} vs ${storedUserId}, ` +
+                                    `hs: ${homeserverUrl} vs ${storedHsUrl}), performing full JWT login`,
+                            );
+                        }
+                    }
+
+                    const jwtLoginSuccess = await performFullJwtLogin(
+                        jwtParam,
+                        payload,
+                        accessToken,
+                        homeserverUrl,
+                        guestIsUrl,
+                        fragmentQueryParams,
+                    );
+                    if (jwtLoginSuccess) {
+                        return true;
                     }
                 }
             }
@@ -353,6 +464,7 @@ export async function loadSession(opts: ILoadSessionOpts = {}): Promise<boolean>
             ignoreGuest: Boolean(opts.ignoreGuest),
         });
         if (success) {
+            await refreshOrgBranding();
             return true;
         }
         if (sessionLockStolen) {

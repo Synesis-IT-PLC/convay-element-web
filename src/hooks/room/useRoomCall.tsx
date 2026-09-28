@@ -14,13 +14,13 @@ import { logger as rootLogger } from "matrix-js-sdk/src/logger";
 import type React from "react";
 import { useFeatureEnabled, useSettingValue } from "../useSettings";
 import SdkConfig from "../../SdkConfig";
-import { useEventEmitter, useEventEmitterState } from "../useEventEmitter";
+import { useEventEmitter, useEventEmitterState, useTypedEventEmitter } from "../useEventEmitter";
 import { LegacyCallHandlerEvent } from "../../LegacyCallHandler";
 import { useWidgets } from "../../utils/WidgetUtils";
 import { WidgetType } from "../../widgets/WidgetType";
 import { useCall, useConnectionState, useParticipantCount } from "../useCall";
 import { useRoomMemberCount } from "../useRoomMembers";
-import { ConnectionState } from "../../models/Call";
+import { CallEvent, ConnectionState } from "../../models/Call";
 import { placeCall } from "../../utils/room/placeCall";
 import { Container, WidgetLayoutStore } from "../../stores/widgets/WidgetLayoutStore";
 import { useRoomState } from "../useRoomState";
@@ -154,12 +154,20 @@ export const useRoomCall = (
     );
 
     const participantCount = useParticipantCount(groupCall);
+    const [callType, setCallType] = useState<CallType>(() => groupCall?.callType ?? CallType.Video);
+    useTypedEventEmitter(groupCall ?? undefined, CallEvent.CallTypeChanged, setCallType);
+    useEffect(() => {
+        if (groupCall) {
+            setCallType(groupCall.callType);
+        }
+    }, [groupCall]);
+
     const activeCallSessionType = useMemo(() => {
         if (!groupCall || participantCount === 0) {
             return null;
         }
-        return groupCall.callType;
-    }, [participantCount, groupCall]);
+        return callType;
+    }, [participantCount, groupCall, callType]);
 
     // room
     const memberCount = useRoomMemberCount(room);
@@ -318,10 +326,8 @@ export const useRoomCall = (
     // We hide the voice call button if it'd have the same effect as the video call button
     let hideVoiceCallButton =
         isManagedHybridWidgetEnabled(room) ||
-        // Disable voice calls if Legacy calls are disabled
         (!callOptions.includes(PlatformCallType.LegacyCall) &&
-            // Disable voice calls in ECall if the room is a group (we only present video calls for groups of users)
-            (!callOptions.includes(PlatformCallType.ElementCall) || memberCount > 2));
+            !callOptions.includes(PlatformCallType.ElementCall));
 
     let hideVideoCallButton = false;
     // We hide both buttons if:

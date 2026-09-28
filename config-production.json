@@ -5,7 +5,7 @@
             "server_name": "matrix.convay.com"
         },
         "m.identity_server": {
-            "base_url": "https://sydent.convay.com"
+            "base_url": "https://invite.convay.com"
         }
     },
     "env": "production",

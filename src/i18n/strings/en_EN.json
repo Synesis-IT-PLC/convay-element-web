@@ -2315,6 +2315,8 @@
             "local_aliases_explainer_room": "Set addresses for this room so users can find this room through your homeserver (%(localDomain)s)",
             "local_aliases_explainer_space": "Set addresses for this space so users can find this space through your homeserver (%(localDomain)s)",
             "local_aliases_section": "Local Addresses",
+            "name_error_empty": "Room name cannot be empty",
+            "name_error_too_long": "Room name cannot exceed %(max)s characters",
             "name_field_label": "Room Name",
             "new_alias_placeholder": "New published address (e.g. #alias:server)",
             "no_aliases_room": "This room has no local addresses",

@@ -18,6 +18,8 @@ import { htmlSerializeFromMdIfNeeded } from "../../../editor/serialize";
 import DMRoomMap from "../../../utils/DMRoomMap";
 import { LocalRoom } from "../../../models/LocalRoom";
 
+const ROOM_NAME_MAX_LENGTH = 100;
+
 interface IProps {
     roomId: string;
 }
@@ -110,8 +112,18 @@ export default class RoomProfileSettings extends React.Component<IProps, IState>
         });
     };
 
+    private getNameError = (): string | null => {
+        if (!this.state.profileFieldsTouched.name) return null;
+        const name = this.state.displayName.trim();
+        if (!name) return _t("room_settings|general|name_error_empty");
+        if (name.length > ROOM_NAME_MAX_LENGTH) {
+            return _t("room_settings|general|name_error_too_long", { max: ROOM_NAME_MAX_LENGTH });
+        }
+        return null;
+    };
+
     private isSaveEnabled = (): boolean => {
-        return Boolean(Object.values(this.state.profileFieldsTouched).length);
+        return Boolean(Object.values(this.state.profileFieldsTouched).length) && !this.getNameError();
     };
 
     private cancelProfileChanges = async (e: ButtonEvent): Promise<void> => {
@@ -140,7 +152,7 @@ export default class RoomProfileSettings extends React.Component<IProps, IState>
 
         // TODO: What do we do about errors?
         const displayName = this.state.displayName.trim();
-        if (this.state.originalDisplayName !== this.state.displayName) {
+        if (this.state.originalDisplayName !== displayName) {
             await client.setRoomName(this.props.roomId, displayName);
             newState.originalDisplayName = displayName;
             newState.displayName = displayName;
@@ -169,22 +181,14 @@ export default class RoomProfileSettings extends React.Component<IProps, IState>
     };
 
     private onDisplayNameChanged = (e: React.ChangeEvent<HTMLInputElement>): void => {
-        this.setState({ displayName: e.target.value });
-        if (this.state.originalDisplayName === e.target.value) {
-            this.setState({
-                profileFieldsTouched: {
-                    ...this.state.profileFieldsTouched,
-                    name: false,
-                },
-            });
+        const value = e.target.value;
+        const profileFieldsTouched = { ...this.state.profileFieldsTouched };
+        if (value.trim() === this.state.originalDisplayName) {
+            delete profileFieldsTouched.name;
         } else {
-            this.setState({
-                profileFieldsTouched: {
-                    ...this.state.profileFieldsTouched,
-                    name: true,
-                },
-            });
+            profileFieldsTouched.name = true;
         }
+        this.setState({ displayName: value, profileFieldsTouched });
     };
 
     private onTopicChanged = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
@@ -225,6 +229,7 @@ export default class RoomProfileSettings extends React.Component<IProps, IState>
             );
         }
 
+        const nameError = this.getNameError();
         const canRemove = this.state.profileFieldsTouched.avatar
             ? Boolean(this.state.avatarFile)
             : Boolean(this.state.originalAvatarUrl);
@@ -240,6 +245,9 @@ export default class RoomProfileSettings extends React.Component<IProps, IState>
                             autoComplete="off"
                             onChange={this.onDisplayNameChanged}
                             disabled={!this.state.canSetName}
+                            forceValidity={nameError ? false : undefined}
+                            tooltipContent={nameError ?? undefined}
+                            forceTooltipVisible={!!nameError}
                         />
                         <Field
                             className={classNames(

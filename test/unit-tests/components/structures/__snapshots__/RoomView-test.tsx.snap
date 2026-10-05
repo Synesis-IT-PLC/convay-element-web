@@ -176,7 +176,7 @@ exports[`RoomView for a local room in state ERROR should match the snapshot 1`] 
                   >
                     <span>
                        
-                      Your private messages are normally encrypted, but this room isn't. Usually this is due to an unsupported device or method being used, like email invites.
+                      Your private messages are normally encrypted, but this room isn't. You can enable encryption later in the room settings.
                        
                        
                     </span>
@@ -366,7 +366,7 @@ exports[`RoomView for a local room in state NEW should match the snapshot 1`] = 
                   >
                     <span>
                        
-                      Your private messages are normally encrypted, but this room isn't. Usually this is due to an unsupported device or method being used, like email invites.
+                      Your private messages are normally encrypted, but this room isn't. You can enable encryption later in the room settings.
                        
                        
                     </span>

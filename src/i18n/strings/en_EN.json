@@ -2051,7 +2051,7 @@
             "encrypted_3pid_dm_pending_join": "Once everyone has joined, you’ll be able to chat",
             "no_avatar_label": "Add a photo, so people can easily spot your room.",
             "no_topic": "<a>Add a topic</a> to help people know what it is about.",
-            "private_unencrypted_warning": "Your private messages are normally encrypted, but this room isn't. Usually this is due to an unsupported device or method being used, like email invites.",
+            "private_unencrypted_warning": "Your private messages are normally encrypted, but this room isn't. You can enable encryption later in the room settings.",
             "room_invite": "Invite to just this room",
             "send_message_start_dm": "Send your first message to invite <displayName/> to chat",
             "start_of_dm_history": "This is the beginning of your direct message history with <displayName/>.",

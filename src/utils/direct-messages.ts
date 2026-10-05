@@ -9,14 +9,12 @@ Please see LICENSE files in the repository root for full details.
 import { ClientEvent, type MatrixClient } from "matrix-js-sdk/src/matrix";
 import { logger } from "matrix-js-sdk/src/logger";
 
-import { canEncryptToAllUsers } from "../createRoom";
 import { Action } from "../dispatcher/actions";
 import { type ViewRoomPayload } from "../dispatcher/payloads/ViewRoomPayload";
 import dis from "../dispatcher/dispatcher";
 import { type LocalRoom, LocalRoomState } from "../models/LocalRoom";
 import { waitForRoomReadyAndApplyAfterCreateCallbacks } from "./local-room";
 import { findDMRoom } from "./dm/findDMRoom";
-import { privateShouldBeEncrypted } from "./rooms";
 import { createDmLocalRoom } from "./dm/createDmLocalRoom";
 import { startDm } from "./dm/startDm";
 import { resolveThreePids } from "./threepids";
@@ -41,12 +39,6 @@ export async function startDmOnFirstMessage(client: MatrixClient, targets: Membe
             metricsTrigger: "MessageUser",
         });
         return existingRoom.roomId;
-    }
-
-    if (targets.length === 1 && targets[0] instanceof ThreepidMember && privateShouldBeEncrypted(client)) {
-        // Single 3rd-party invite and well-known promotes encryption:
-        // Directly create a room and invite the other.
-        return await startDm(client, targets);
     }
 
     const room = await createDmLocalRoom(client, resolvedTargets);
@@ -184,21 +176,6 @@ export interface IDMUserTileProps {
  * @returns {Promise<boolean>}
  */
 export async function determineCreateRoomEncryptionOption(client: MatrixClient, targets: Member[]): Promise<boolean> {
-    if (privateShouldBeEncrypted(client)) {
-        // Enable encryption for a single 3rd party invite.
-        if (targets.length === 1 && targets[0] instanceof ThreepidMember) return true;
-
-        // Check whether all users have uploaded device keys before.
-        // If so, enable encryption in the new room.
-        const has3PidMembers = targets.some((t) => t instanceof ThreepidMember);
-        if (!has3PidMembers) {
-            const targetIds = targets.map((t) => t.userId);
-            const allHaveDeviceKeys = await canEncryptToAllUsers(client, targetIds);
-            if (allHaveDeviceKeys) {
-                return true;
-            }
-        }
-    }
-
+    // DMs are always created unencrypted by default.
     return false;
 }

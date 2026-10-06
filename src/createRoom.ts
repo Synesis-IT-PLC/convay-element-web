@@ -41,7 +41,6 @@ import ErrorDialog from "./components/views/dialogs/ErrorDialog";
 import Spinner from "./components/views/elements/Spinner";
 import { type ViewRoomPayload } from "./dispatcher/payloads/ViewRoomPayload";
 import { findDMForUser } from "./utils/dm/findDMForUser";
-import { privateShouldBeEncrypted } from "./utils/rooms";
 import { shouldForceDisableEncryption } from "./utils/crypto/shouldForceDisableEncryption";
 import { waitForMember } from "./utils/membership";
 import { doesRoomVersionSupport, PreferredRoomVersions } from "./utils/PreferredRoomVersions";
@@ -524,12 +523,7 @@ export async function ensureDMExists(client: MatrixClient, userId: string): Prom
     if (existingDMRoom) {
         roomId = existingDMRoom.roomId;
     } else {
-        let encryption: boolean | undefined;
-        if (privateShouldBeEncrypted(client)) {
-            encryption = await canEncryptToAllUsers(client, [userId]);
-        }
-
-        roomId = await createRoom(client, { encryption, dmUserId: userId, spinner: false, andView: false });
+        roomId = await createRoom(client, { encryption: false, dmUserId: userId, spinner: false, andView: false });
         if (!roomId) return null;
         await waitForMember(client, roomId, userId);
     }

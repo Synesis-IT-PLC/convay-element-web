@@ -10,9 +10,12 @@ Please see LICENSE files in the repository root for full details.
 import React, { createRef } from "react";
 import {
     Filter,
+    Direction,
+    EventTimeline,
+    EventType,
+    RelationType,
     type EventTimelineSet,
     type IRoomTimelineData,
-    type Direction,
     type MatrixEvent,
     MatrixEventEvent,
     type Room,
@@ -48,6 +51,13 @@ interface IState {
 /*
  * Component which shows the filtered file using a TimelinePanel
  */
+const FILE_MSGTYPES = ["m.file", "m.image", "m.video", "m.audio"];
+const SCAN_PAGE_SIZE = 100;
+// Bounds how many /messages pages a single fill/pagination request may fetch,
+// so rooms with lots of messages and few files don't stall the panel.
+const SCAN_MAX_PAGES_PER_REQUEST = 10;
+const CLIENT_SCAN_PAGINATION_TOKEN = "client-scan";
+
 class FilePanel extends React.Component<IProps, IState> {
     public static contextType = RoomContext;
     declare public context: React.ContextType<typeof RoomContext>;
@@ -57,6 +67,14 @@ class FilePanel extends React.Component<IProps, IState> {
     private decryptingEvents = new Set<string>();
     public noRoom = false;
     private card = createRef<HTMLDivElement>();
+    // Bumped on every mount/unmount so async work started by a previous mount
+    // (e.g. StrictMode's simulated unmount/remount) can detect it is stale.
+    private loadGeneration = 0;
+
+    // State for scanning encrypted rooms client-side when no event index is available.
+    private serverScanToken: string | null = null;
+    private serverScanFinished = false;
+    private listeningForLiveEvents = false;
 
     public state: IState = {
         timelineSet: null,
@@ -98,7 +116,7 @@ class FilePanel extends React.Component<IProps, IState> {
 
         const timeline = this.state.timelineSet.getLiveTimeline();
         if (ev.getType() !== "m.room.message") return;
-        if (!["m.file", "m.image", "m.video", "m.audio"].includes(ev.getContent().msgtype!)) {
+        if (!FILE_MSGTYPES.includes(ev.getContent().msgtype!)) {
             return;
         }
 
@@ -113,8 +131,11 @@ class FilePanel extends React.Component<IProps, IState> {
 
     public async componentDidMount(): Promise<void> {
         const client = MatrixClientPeg.safeGet();
+        const generation = ++this.loadGeneration;
 
         await this.updateTimelineSet(this.props.roomId);
+
+        if (generation !== this.loadGeneration) return;
 
         if (!client.isRoomEncrypted(this.props.roomId)) return;
 
@@ -123,25 +144,152 @@ class FilePanel extends React.Component<IProps, IState> {
         // These methods are here to manually listen for such events and add
         // them despite the filter's best efforts.
         //
-        // We do this only for encrypted rooms and if an event index exists,
-        // this could be made more general in the future or the filter logic
-        // could be fixed.
-        if (EventIndexPeg.get() !== null) {
-            client.on(RoomEvent.Timeline, this.onRoomTimeline);
-            client.on(MatrixEventEvent.Decrypted, this.onEventDecrypted);
-        }
+        // We do this only for encrypted rooms, either backed by the event index
+        // or by the client-side history scan.
+        if (this.listeningForLiveEvents) return;
+        client.on(RoomEvent.Timeline, this.onRoomTimeline);
+        client.on(MatrixEventEvent.Decrypted, this.onEventDecrypted);
+        this.listeningForLiveEvents = true;
     }
 
     public componentWillUnmount(): void {
+        this.loadGeneration++;
+
         const client = MatrixClientPeg.get();
         if (client === null) return;
 
-        if (!client.isRoomEncrypted(this.props.roomId)) return;
-
-        if (EventIndexPeg.get() !== null) {
+        if (this.listeningForLiveEvents) {
             client.removeListener(RoomEvent.Timeline, this.onRoomTimeline);
             client.removeListener(MatrixEventEvent.Decrypted, this.onEventDecrypted);
+            this.listeningForLiveEvents = false;
         }
+    }
+
+    private shouldUseClientScan(roomId: string): boolean {
+        const client = MatrixClientPeg.safeGet();
+        return client.isRoomEncrypted(roomId) && EventIndexPeg.get() === null;
+    }
+
+    private isFileEvent(ev: MatrixEvent): boolean {
+        if (ev.isRedacted() || ev.isDecryptionFailure()) return false;
+        if (ev.getType() !== EventType.RoomMessage) return false;
+        if (ev.getRelation()?.rel_type === RelationType.Replace) return false;
+        return FILE_MSGTYPES.includes(ev.getContent().msgtype!);
+    }
+
+    /**
+     * Walks the room history backwards via /messages, decrypting events locally,
+     * until `limit` file events are found or the start of the room is reached.
+     * The server can't filter encrypted events by `contains_url`, so this is
+     * the only way to find older files in encrypted rooms without an event index.
+     */
+    private async scanServerForFileEvents(
+        room: Room,
+        limit: number,
+        generation: number,
+    ): Promise<MatrixEvent[] | null> {
+        const client = MatrixClientPeg.safeGet();
+        const mapper = client.getEventMapper();
+        const found: MatrixEvent[] = [];
+        let pages = 0;
+
+        while (found.length < limit && !this.serverScanFinished && pages < SCAN_MAX_PAGES_PER_REQUEST) {
+            pages++;
+            const res = await client.createMessagesRequest(
+                room.roomId,
+                this.serverScanToken,
+                SCAN_PAGE_SIZE,
+                Direction.Backward,
+            );
+            if (generation !== this.loadGeneration) return null;
+            const events = (res.chunk ?? []).map(mapper);
+
+            await Promise.all(
+                events.map((ev) =>
+                    client.decryptEventIfNeeded(ev).catch((e) => {
+                        logger.warn("FilePanel: failed to decrypt event", ev.getId(), e);
+                    }),
+                ),
+            );
+            if (generation !== this.loadGeneration) return null;
+
+            for (const ev of events) {
+                if (!this.isFileEvent(ev)) continue;
+                const member = room.getMember(ev.getSender()!);
+                if (member) ev.sender = member;
+                found.push(ev);
+            }
+
+            this.serverScanToken = res.end ?? null;
+            if (!res.end || events.length === 0) this.serverScanFinished = true;
+        }
+
+        return found;
+    }
+
+    private async populateFromServerScan(
+        timelineSet: EventTimelineSet,
+        timeline: EventTimeline,
+        room: Room,
+        limit: number,
+    ): Promise<boolean> {
+        const generation = this.loadGeneration;
+        let events: MatrixEvent[] = [];
+        try {
+            const scanned = await this.scanServerForFileEvents(room, limit, generation);
+            if (scanned === null) return false;
+            events = scanned;
+        } catch (e) {
+            if (generation !== this.loadGeneration) return false;
+            logger.error("FilePanel: failed to scan room history for files", e);
+            this.serverScanFinished = true;
+        }
+
+        // /messages returns newest first, so prepending in order keeps the
+        // timeline chronological.
+        for (const ev of events) {
+            if (!timelineSet.eventIdToTimeline(ev.getId()!)) {
+                timelineSet.addEventToTimeline(ev, timeline, {
+                    toStartOfTimeline: true,
+                    fromCache: false,
+                    addToState: false,
+                });
+            }
+        }
+
+        // TimelineWindow.canPaginate() relies on a non-null token.
+        timeline.setPaginationToken(
+            this.serverScanFinished ? null : CLIENT_SCAN_PAGINATION_TOKEN,
+            EventTimeline.BACKWARDS,
+        );
+        return events.length > 0;
+    }
+
+    private paginateFromServerScan(
+        room: Room,
+        timelineWindow: TimelineWindow,
+        direction: Direction,
+        limit: number,
+    ): Promise<boolean> {
+        if (direction === Direction.Forward) return timelineWindow.paginate(direction, limit);
+
+        const tl = timelineWindow.getTimelineIndex(direction);
+        if (!tl) return Promise.resolve(false);
+        if (tl.pendingPaginate) return tl.pendingPaginate;
+
+        if (timelineWindow.extend(direction, limit)) {
+            return Promise.resolve(true);
+        }
+
+        const promise = (async (): Promise<boolean> => {
+            const timeline = tl.timeline;
+            const ret = await this.populateFromServerScan(timeline.getTimelineSet(), timeline, room, limit);
+            tl.pendingPaginate = undefined;
+            timelineWindow.extend(direction, limit);
+            return ret;
+        })();
+        tl.pendingPaginate = promise;
+        return promise;
     }
 
     public async fetchFileEventsServer(room: Room): Promise<EventTimelineSet> {
@@ -178,6 +326,8 @@ class FilePanel extends React.Component<IProps, IState> {
         // out events containing URLs
         if (room && client.isRoomEncrypted(roomId) && eventIndex !== null) {
             return eventIndex.paginateTimelineWindow(room, timelineWindow, direction, limit);
+        } else if (room && this.shouldUseClientScan(roomId)) {
+            return this.paginateFromServerScan(room, timelineWindow, direction, limit);
         } else {
             return timelineWindow.paginate(direction, limit);
         }
@@ -188,6 +338,7 @@ class FilePanel extends React.Component<IProps, IState> {
     };
 
     public async updateTimelineSet(roomId: string): Promise<void> {
+        const generation = this.loadGeneration;
         const client = MatrixClientPeg.safeGet();
         const room = client.getRoom(roomId);
         const eventIndex = EventIndexPeg.get();
@@ -199,6 +350,7 @@ class FilePanel extends React.Component<IProps, IState> {
 
             try {
                 timelineSet = await this.fetchFileEventsServer(room);
+                if (generation !== this.loadGeneration) return;
 
                 // If this room is encrypted the file panel won't be populated
                 // correctly since the defined filter doesn't support encrypted
@@ -212,8 +364,15 @@ class FilePanel extends React.Component<IProps, IState> {
                 if (client.isRoomEncrypted(roomId) && eventIndex !== null) {
                     const timeline = timelineSet.getLiveTimeline();
                     await eventIndex.populateFileTimeline(timelineSet, timeline, room, 10);
+                } else if (this.shouldUseClientScan(roomId)) {
+                    // Without an event index (e.g. on web), scan the room history
+                    // and decrypt events locally to find files.
+                    this.serverScanToken = null;
+                    this.serverScanFinished = false;
+                    await this.populateFromServerScan(timelineSet, timelineSet.getLiveTimeline(), room, 10);
                 }
 
+                if (generation !== this.loadGeneration) return;
                 this.setState({ timelineSet: timelineSet });
             } catch (error) {
                 logger.error("Failed to get or create file panel filter", error);

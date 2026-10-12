@@ -64,6 +64,34 @@
         }
     }
 
+    .mx_ChooseMethodPanel {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cpd-space-1x);
+
+        > span:nth-child(even) {
+            color: var(--cpd-color-text-secondary);
+            margin-bottom: var(--cpd-space-3x);
+        }
+    }
+
+    .mx_PassphraseForm {
+        display: flex;
+        flex-direction: column;
+        gap: var(--cpd-space-8x);
+
+        .mx_Field {
+            margin: 0;
+        }
+
+        .mx_Field_postfix {
+            display: flex;
+            align-items: center;
+            padding: 0 var(--cpd-space-2x);
+            border-left: none;
+        }
+    }
+
     .mx_KeyForm {
         display: flex;
         flex-direction: column;

@@ -20,11 +20,13 @@ import {
 } from "@vector-im/compound-web";
 import CopyIcon from "@vector-im/compound-design-tokens/assets/web/icons/copy";
 import KeyIcon from "@vector-im/compound-design-tokens/assets/web/icons/key-solid";
+import { type GeneratedSecretStorageKey } from "matrix-js-sdk/src/crypto-api";
 
-import { _t } from "../../../../languageHandler";
+import { _t, _td } from "../../../../languageHandler";
+import PassphraseField from "../../auth/PassphraseField";
+import PassphraseConfirmField from "../../auth/PassphraseConfirmField";
 import { EncryptionCard } from "./EncryptionCard";
 import { useMatrixClientContext } from "../../../../contexts/MatrixClientContext";
-import { useAsyncMemo } from "../../../../hooks/useAsyncMemo";
 import { copyPlaintext } from "../../../../utils/strings";
 import { initialiseDehydrationIfEnabled } from "../../../../utils/device/dehydration.ts";
 import { withSecretStorageKeyCache } from "../../../../SecurityManager";
@@ -34,8 +36,16 @@ import DeviceListener, { RECOVERY_ACCOUNT_DATA_KEY } from "../../../../DeviceLis
 import { resetKeyBackupAndWait } from "../../../../utils/crypto/resetKeyBackup";
 
 /**
+ * The minimum zxcvbn score required for a security phrase.
+ */
+const PASSPHRASE_MIN_SCORE = 4;
+
+/**
  * The possible states of the component.
  * - `inform_user`: The user is informed about the recovery key.
+ * - `choose_method`: The user chooses between a generated recovery key and a security phrase.
+ * - `enter_passphrase`: The user enters a new security phrase.
+ * - `confirm_passphrase`: The user enters the security phrase a second time to confirm it.
  * - `save_key_setup_flow`: The user is asked to save the new recovery key during the setup flow.
  * - `save_key_change_flow`: The user is asked to save the new recovery key during the change key flow.
  * - `confirm_key_setup_flow`: The user is asked to confirm the new recovery key during the set up flow.
@@ -43,6 +53,9 @@ import { resetKeyBackupAndWait } from "../../../../utils/crypto/resetKeyBackup";
  */
 type State =
     | "inform_user"
+    | "choose_method"
+    | "enter_passphrase"
+    | "confirm_passphrase"
     | "save_key_setup_flow"
     | "save_key_change_flow"
     | "confirm_key_setup_flow"
@@ -75,27 +88,98 @@ export function ChangeRecoveryKey({
     const matrixClient = useMatrixClientContext();
 
     // If the user is setting up recovery for the first time, we first show them a panel explaining what
-    // "recovery" is about. Otherwise, we jump straight to showing the user the new key.
-    const [state, setState] = useState<State>(userHasRecoveryKey ? "save_key_change_flow" : "inform_user");
+    // "recovery" is about. Otherwise, we jump straight to letting the user choose a key or a passphrase.
+    const [state, setState] = useState<State>(userHasRecoveryKey ? "choose_method" : "inform_user");
+    const [recoveryKey, setRecoveryKey] = useState<GeneratedSecretStorageKey>();
+    const [passphrase, setPassphrase] = useState("");
 
-    // We create a new recovery key, the recovery key will be displayed to the user
-    const recoveryKey = useAsyncMemo(() => matrixClient.getCrypto()!.createRecoveryKeyFromPassphrase(), []);
-    // Waiting for the recovery key to be generated
-    if (!recoveryKey) return null;
+    const setUpRecovery = async (key: GeneratedSecretStorageKey): Promise<void> => {
+        const crypto = matrixClient.getCrypto();
+        if (!crypto) return onFinish();
 
-    let content: JSX.Element;
+        try {
+            const deviceListener = DeviceListener.sharedInstance();
+
+            // we need to call keyStorageOutOfSyncNeedsBackupReset here because
+            // deviceListener.whilePaused() sets its client to undefined, so
+            // keyStorageOutOfSyncNeedsBackupReset won't be able to check
+            // the backup state.
+            const needsBackupReset = await deviceListener.keyStorageOutOfSyncNeedsBackupReset(true);
+            await deviceListener.whilePaused(async () => {
+                // We need to enable the cache to avoid to prompt the user to enter the new key
+                // when we will try to access the secret storage during the bootstrap
+                await withSecretStorageKeyCache(async () => {
+                    await crypto.bootstrapSecretStorage({
+                        setupNewSecretStorage: true,
+                        createSecretStorageKey: async () => key,
+                    });
+                    // Reset the key backup if needed
+                    if (needsBackupReset) {
+                        await resetKeyBackupAndWait(crypto);
+                    }
+                    await initialiseDehydrationIfEnabled(matrixClient, { createNewKey: true });
+                });
+            });
+
+            // Record the fact that the user explicitly enabled recovery.
+            await matrixClient.setAccountData(RECOVERY_ACCOUNT_DATA_KEY, { enabled: true });
+
+            onFinish();
+        } catch (e) {
+            logErrorAndShowErrorDialog("Failed to set up secret storage", e);
+        }
+    };
+
+    const submitButtonLabel = userHasRecoveryKey
+        ? _t("settings|encryption|recovery|change_recovery_confirm_button")
+        : _t("settings|encryption|recovery|set_up_recovery_confirm_button");
+
+    let content: JSX.Element | null = null;
     switch (state) {
         case "inform_user":
             // Show a panel explaining what "recovery" is for, and what a recovery key does.
             content = (
-                <InformationPanel
-                    onContinueClick={() => setState("save_key_setup_flow")}
+                <InformationPanel onContinueClick={() => setState("choose_method")} onCancelClick={onCancelClick} />
+            );
+            break;
+        case "choose_method":
+            content = (
+                <ChooseMethodPanel
+                    onKeyClick={async () => {
+                        setRecoveryKey(await matrixClient.getCrypto()!.createRecoveryKeyFromPassphrase());
+                        setState(userHasRecoveryKey ? "save_key_change_flow" : "save_key_setup_flow");
+                    }}
+                    onPassphraseClick={() => setState("enter_passphrase")}
                     onCancelClick={onCancelClick}
+                />
+            );
+            break;
+        case "enter_passphrase":
+            content = (
+                <PassphraseForm
+                    passphrase={passphrase}
+                    onPassphraseChange={setPassphrase}
+                    onContinueClick={() => setState("confirm_passphrase")}
+                    onCancelClick={onCancelClick}
+                />
+            );
+            break;
+        case "confirm_passphrase":
+            content = (
+                <PassphraseConfirmForm
+                    passphrase={passphrase}
+                    submitButtonLabel={submitButtonLabel}
+                    onBackClick={() => setState("enter_passphrase")}
+                    onSubmit={async () => {
+                        const key = await matrixClient.getCrypto()!.createRecoveryKeyFromPassphrase(passphrase);
+                        await setUpRecovery(key);
+                    }}
                 />
             );
             break;
         case "save_key_setup_flow":
         case "save_key_change_flow":
+            if (!recoveryKey) break;
             // Show a generated recovery key and ask the user to save it.
             content = (
                 <KeyPanel
@@ -114,53 +198,15 @@ export function ChangeRecoveryKey({
             break;
         case "confirm_key_setup_flow":
         case "confirm_key_change_flow":
+            if (!recoveryKey) break;
             // Ask the user to enter the recovery key they just saved to confirm it.
             content = (
                 <KeyForm
                     // encodedPrivateKey is always defined, the optional typing is incorrect
                     recoveryKey={recoveryKey.encodedPrivateKey!}
                     onCancelClick={onCancelClick}
-                    onSubmit={async () => {
-                        const crypto = matrixClient.getCrypto();
-                        if (!crypto) return onFinish();
-
-                        try {
-                            const deviceListener = DeviceListener.sharedInstance();
-
-                            // we need to call keyStorageOutOfSyncNeedsBackupReset here because
-                            // deviceListener.whilePaused() sets its client to undefined, so
-                            // keyStorageOutOfSyncNeedsBackupReset won't be able to check
-                            // the backup state.
-                            const needsBackupReset = await deviceListener.keyStorageOutOfSyncNeedsBackupReset(true);
-                            await deviceListener.whilePaused(async () => {
-                                // We need to enable the cache to avoid to prompt the user to enter the new key
-                                // when we will try to access the secret storage during the bootstrap
-                                await withSecretStorageKeyCache(async () => {
-                                    await crypto.bootstrapSecretStorage({
-                                        setupNewSecretStorage: true,
-                                        createSecretStorageKey: async () => recoveryKey,
-                                    });
-                                    // Reset the key backup if needed
-                                    if (needsBackupReset) {
-                                        await resetKeyBackupAndWait(crypto);
-                                    }
-                                    await initialiseDehydrationIfEnabled(matrixClient, { createNewKey: true });
-                                });
-                            });
-
-                            // Record the fact that the user explicitly enabled recovery.
-                            await matrixClient.setAccountData(RECOVERY_ACCOUNT_DATA_KEY, { enabled: true });
-
-                            onFinish();
-                        } catch (e) {
-                            logErrorAndShowErrorDialog("Failed to set up secret storage", e);
-                        }
-                    }}
-                    submitButtonLabel={
-                        state === "confirm_key_setup_flow"
-                            ? _t("settings|encryption|recovery|set_up_recovery_confirm_button")
-                            : _t("settings|encryption|recovery|change_recovery_confirm_button")
-                    }
+                    onSubmit={() => setUpRecovery(recoveryKey)}
+                    submitButtonLabel={submitButtonLabel}
                 />
             );
     }
@@ -171,7 +217,7 @@ export function ChangeRecoveryKey({
             ? _t("settings|encryption|recovery|change_recovery_key")
             : _t("settings|encryption|recovery|set_up_recovery"),
     ];
-    const labels = getLabels(state);
+    const labels = getLabels(state, userHasRecoveryKey);
 
     return (
         <>
@@ -207,8 +253,9 @@ type Labels = {
 /**
  * Get the header title and description for the given state.
  * @param state
+ * @param userHasRecoveryKey
  */
-function getLabels(state: State): Labels {
+function getLabels(state: State, userHasRecoveryKey: boolean): Labels {
     switch (state) {
         case "inform_user":
             return {
@@ -216,6 +263,23 @@ function getLabels(state: State): Labels {
                 description: _t("settings|encryption|recovery|set_up_recovery_description", {
                     changeRecoveryKeyButton: _t("settings|encryption|recovery|change_recovery_key"),
                 }),
+            };
+        case "choose_method":
+            return {
+                title: userHasRecoveryKey
+                    ? _t("settings|encryption|recovery|change_recovery_key")
+                    : _t("settings|encryption|recovery|set_up_recovery"),
+                description: _t("settings|key_backup|setup_secure_backup|description"),
+            };
+        case "enter_passphrase":
+            return {
+                title: _t("settings|key_backup|setup_secure_backup|enter_phrase_title"),
+                description: _t("settings|key_backup|setup_secure_backup|enter_phrase_description"),
+            };
+        case "confirm_passphrase":
+            return {
+                title: _t("settings|key_backup|setup_secure_backup|confirm_security_phrase"),
+                description: _t("settings|key_backup|setup_secure_backup|enter_phrase_to_confirm"),
             };
         case "save_key_setup_flow":
             return {
@@ -267,6 +331,192 @@ function InformationPanel({ onContinueClick, onCancelClick }: InformationPanelPr
                 </Button>
             </EncryptionCardButtons>
         </>
+    );
+}
+
+interface ChooseMethodPanelProps {
+    /**
+     * Called when the user chooses to generate a recovery key.
+     */
+    onKeyClick: () => Promise<void>;
+    /**
+     * Called when the user chooses to use a security phrase.
+     */
+    onPassphraseClick: MouseEventHandler<HTMLButtonElement>;
+    /**
+     * Called when the cancel button is clicked.
+     */
+    onCancelClick: MouseEventHandler<HTMLButtonElement>;
+}
+
+/**
+ * The panel to choose between a generated recovery key and a security phrase.
+ */
+function ChooseMethodPanel({ onKeyClick, onPassphraseClick, onCancelClick }: ChooseMethodPanelProps): JSX.Element {
+    const [isGenerating, setIsGenerating] = useState(false);
+
+    return (
+        <>
+            <div className="mx_ChooseMethodPanel">
+                <Text as="span" weight="semibold">
+                    {_t("settings|key_backup|setup_secure_backup|enter_phrase_title")}
+                </Text>
+                <Text as="span" size="sm">
+                    {_t("settings|key_backup|setup_secure_backup|use_phrase_only_you_know")}
+                </Text>
+                <Text as="span" weight="semibold">
+                    {_t("settings|key_backup|setup_secure_backup|generate_security_key_title")}
+                </Text>
+                <Text as="span" size="sm">
+                    {_t("settings|key_backup|setup_secure_backup|generate_security_key_description")}
+                </Text>
+            </div>
+            <EncryptionCardButtons>
+                <Button type="button" onClick={onPassphraseClick} disabled={isGenerating}>
+                    {_t("settings|key_backup|setup_secure_backup|enter_phrase_title")}
+                </Button>
+                <Button
+                    type="button"
+                    kind="secondary"
+                    disabled={isGenerating}
+                    onClick={() => {
+                        setIsGenerating(true);
+                        onKeyClick().finally(() => setIsGenerating(false));
+                    }}
+                >
+                    {_t("settings|key_backup|setup_secure_backup|generate_security_key_title")}
+                </Button>
+                <Button type="button" kind="tertiary" onClick={onCancelClick}>
+                    {_t("action|cancel")}
+                </Button>
+            </EncryptionCardButtons>
+        </>
+    );
+}
+
+interface PassphraseFormProps {
+    /**
+     * The security phrase entered so far.
+     */
+    passphrase: string;
+    /**
+     * Called when the security phrase changes.
+     */
+    onPassphraseChange: (passphrase: string) => void;
+    /**
+     * Called when the user submits a strong enough security phrase.
+     */
+    onContinueClick: () => void;
+    /**
+     * Called when the cancel button is clicked.
+     */
+    onCancelClick: MouseEventHandler<HTMLButtonElement>;
+}
+
+/**
+ * The form to enter a new security phrase.
+ * The continue button is disabled until the security phrase is strong enough.
+ */
+function PassphraseForm({
+    passphrase,
+    onPassphraseChange,
+    onContinueClick,
+    onCancelClick,
+}: PassphraseFormProps): JSX.Element {
+    const [isValid, setIsValid] = useState(false);
+
+    return (
+        <form
+            className="mx_PassphraseForm"
+            onSubmit={(evt) => {
+                evt.preventDefault();
+                if (isValid) onContinueClick();
+            }}
+        >
+            <PassphraseField
+                id="mx_ChangeRecoveryKey_passphrase"
+                minScore={PASSPHRASE_MIN_SCORE}
+                value={passphrase}
+                onChange={(evt) => onPassphraseChange((evt.target as HTMLInputElement).value)}
+                onValidate={(result) => setIsValid(!!result.valid)}
+                autoFocus={true}
+                showVisibilityToggle={true}
+                label={_td("settings|key_backup|setup_secure_backup|enter_phrase_title")}
+                labelEnterPassword={_td("settings|key_backup|setup_secure_backup|enter_phrase_title")}
+                labelStrongPassword={_td("settings|key_backup|setup_secure_backup|phrase_strong_enough")}
+                labelAllowedButUnsafe={_td("settings|key_backup|setup_secure_backup|phrase_strong_enough")}
+            />
+            <EncryptionCardButtons>
+                <Button disabled={!isValid}>{_t("action|continue")}</Button>
+                <Button type="button" kind="tertiary" onClick={onCancelClick}>
+                    {_t("action|cancel")}
+                </Button>
+            </EncryptionCardButtons>
+        </form>
+    );
+}
+
+interface PassphraseConfirmFormProps {
+    /**
+     * The security phrase to confirm.
+     */
+    passphrase: string;
+    /**
+     * The label for the submit button.
+     */
+    submitButtonLabel: string;
+    /**
+     * Called when the back button is clicked.
+     */
+    onBackClick: MouseEventHandler<HTMLButtonElement>;
+    /**
+     * Called when the form is submitted with a matching security phrase.
+     */
+    onSubmit: () => Promise<void>;
+}
+
+/**
+ * The form to confirm the security phrase.
+ * The submit button is disabled until the entered security phrase matches.
+ */
+function PassphraseConfirmForm({
+    passphrase,
+    submitButtonLabel,
+    onBackClick,
+    onSubmit,
+}: PassphraseConfirmFormProps): JSX.Element {
+    const [confirmation, setConfirmation] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const matches = confirmation === passphrase;
+
+    return (
+        <form
+            className="mx_PassphraseForm"
+            onSubmit={(evt) => {
+                evt.preventDefault();
+                if (!matches || isSubmitting) return;
+                setIsSubmitting(true);
+                onSubmit().finally(() => setIsSubmitting(false));
+            }}
+        >
+            <PassphraseConfirmField
+                id="mx_ChangeRecoveryKey_passphraseConfirm"
+                value={confirmation}
+                password={passphrase}
+                onChange={(evt) => setConfirmation((evt.target as HTMLInputElement).value)}
+                autoFocus={true}
+                showVisibilityToggle={true}
+                label={_td("settings|key_backup|setup_secure_backup|confirm_security_phrase")}
+                labelRequired={_td("settings|key_backup|setup_secure_backup|confirm_security_phrase")}
+                labelInvalid={_td("settings|key_backup|setup_secure_backup|pass_phrase_match_failed")}
+            />
+            <EncryptionCardButtons>
+                <Button disabled={!matches || isSubmitting}>{submitButtonLabel}</Button>
+                <Button type="button" kind="tertiary" onClick={onBackClick} disabled={isSubmitting}>
+                    {_t("action|back")}
+                </Button>
+            </EncryptionCardButtons>
+        </form>
     );
 }
 

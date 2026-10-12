@@ -11,6 +11,7 @@ import React, { type ComponentProps, PureComponent, type Ref } from "react";
 import Field, { type IInputProps } from "../elements/Field";
 import withValidation, { type IFieldState, type IValidationResult } from "../elements/Validation";
 import { _t, _td } from "../../../languageHandler";
+import PasswordVisibilityToggle from "./PasswordVisibilityToggle";
 
 interface IProps extends Omit<IInputProps, "onValidate" | "label" | "element"> {
     id?: string;
@@ -23,11 +24,19 @@ interface IProps extends Omit<IInputProps, "onValidate" | "label" | "element"> {
     labelRequired: TranslationKey;
     labelInvalid: TranslationKey;
     tooltipAlignment?: ComponentProps<typeof Field>["tooltipAlignment"];
+    // Show an eye button that lets the user reveal what they typed
+    showVisibilityToggle?: boolean;
     onChange(ev: React.FormEvent<HTMLElement>): void;
     onValidate?(result: IValidationResult): void;
 }
 
-class PassphraseConfirmField extends PureComponent<IProps> {
+interface IState {
+    visible: boolean;
+}
+
+class PassphraseConfirmField extends PureComponent<IProps, IState> {
+    public state: IState = { visible: false };
+
     public static defaultProps = {
         label: _td("auth|change_password_confirm_label"),
         labelRequired: _td("auth|change_password_confirm_label"),
@@ -63,7 +72,7 @@ class PassphraseConfirmField extends PureComponent<IProps> {
             <Field
                 id={this.props.id}
                 ref={this.props.fieldRef}
-                type="password"
+                type={this.state.visible ? "text" : "password"}
                 label={_t(this.props.label)}
                 autoComplete={this.props.autoComplete}
                 value={this.props.value}
@@ -71,6 +80,14 @@ class PassphraseConfirmField extends PureComponent<IProps> {
                 onValidate={this.onValidate}
                 autoFocus={this.props.autoFocus}
                 tooltipAlignment={this.props.tooltipAlignment}
+                postfixComponent={
+                    this.props.showVisibilityToggle ? (
+                        <PasswordVisibilityToggle
+                            visible={this.state.visible}
+                            onToggle={() => this.setState(({ visible }) => ({ visible: !visible }))}
+                        />
+                    ) : undefined
+                }
             />
         );
     }

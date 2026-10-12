@@ -948,11 +948,14 @@
         "access_secret_storage_dialog": {
             "alternatives": "সিকিউরিটি কী বা সিকিউরিটি ফ্রেজ থাকলেও এটি কাজ করবে।",
             "key_validation_text": {
-                "wrong_security_key": "আপনি যে পুনরুদ্ধার কীটি লিখেছেন তা সঠিক নয়।"
+                "wrong_security_key": "আপনি যে পুনরুদ্ধার কীটি লিখেছেন তা সঠিক নয়।",
+                "wrong_security_key_or_phrase": "আপনি যে রিকভারি কী বা নিরাপত্তা বাক্যাংশ লিখেছেন তা সঠিক নয়।"
             },
             "privacy_warning": "এই স্ক্রিনটি যেন অন্য কেউ দেখতে না পান!",
             "restoring": "ব্যাকআপ থেকে কী পুনরুদ্ধার করা হচ্ছে",
             "security_key_label": "রিকভারি কী",
+            "security_key_or_phrase_label": "রিকভারি কী বা নিরাপত্তা বাক্যাংশ",
+            "security_key_or_phrase_title": "আপনার রিকভারি কী বা নিরাপত্তা বাক্যাংশ লিখুন",
             "security_key_title": "আপনার রিকভারি কী লিখুন"
         },
         "bootstrap_title": "কী সেট আপ করা হচ্ছে",
@@ -1095,6 +1098,7 @@
             "unverified_sessions_toast_title": "আপনার ভেরিফাই করা সেশন আছে",
             "use_another_device": "অন্য ডিভাইস ব্যবহার করুন",
             "use_recovery_key": "রিকভারি কী ব্যবহার করুন",
+            "use_recovery_key_or_phrase": "রিকভারি কী বা নিরাপত্তা বাক্যাংশ ব্যবহার করুন",
             "verification_dialog_title_choose": "কিভাবে ভেরিফাই করতে হবে তা বেছে নিন",
             "verification_dialog_title_compare_emojis": "ইমোজি তুলনা করুন",
             "verification_dialog_title_confirm_green_shield": "নিশ্চিত করুন যে আপনি আপনার অন্য ডিভাইসে একটি সবুজ ঢাল দেখতে পাচ্ছেন",
@@ -1103,6 +1107,7 @@
             "verification_dialog_title_start_on_other_device": "অন্য ডিভাইসে ভেরিফিকেশন শুরু করুন",
             "verification_dialog_title_user": "ভেরিফিকেশনের অনুরোধ",
             "verification_dialog_title_verified": "ডিভাইস ভেরিফাই করা হয়েছে",
+            "verification_failed_session_not_signed": "আপনার রিকভারি কী বা নিরাপত্তা বাক্যাংশ গ্রহণ করা হয়েছে, কিন্তু এই সেশনটি ভেরিফাই করা যায়নি। পেজটি রিলোড করে আবার চেষ্টা করুন।",
             "verification_skip_warning": "ভেরিফাই না করে, আপনার সমস্ত মেসেজগুলোতে অ্যাক্সেস থাকবে না এবং অন্যদের কাছে অবিশ্বস্ত হিসাবে প্রদর্শিত হতে পারে।",
             "verification_success_with_backup": "নতুন ডিভাইসটি ভেরিফাই হয়েছে। এটি এনক্রিপ্ট করা মেসেজগুলো দেখতে পারবে এবং অন্য ইউজারদের কাছে বিশ্বস্ত হিসেবে দেখাবে।",
             "verification_success_without_backup": "নতুন ডিভাইসটি ভেরিফাই হয়েছে। অন্য ইউজারদের কাছে এটি বিশ্বস্ত হিসেবে দেখাবে।",

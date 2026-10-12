@@ -88,7 +88,7 @@ export default class AccessSecretStorageDialog extends React.PureComponent<IProp
             return;
         }
 
-        const hasPassphrase = this.props.keyInfo?.passphrase?.salt && this.props.keyInfo?.passphrase?.iterations;
+        const hasPassphrase = this.hasPassphrase();
 
         // If the user has a passphrase, we want to try validating it both as a
         // key and as a passphrase.  We first try to validate it as a key, since
@@ -157,7 +157,9 @@ export default class AccessSecretStorageDialog extends React.PureComponent<IProp
             content = (
                 <>
                     <ErrorSolidIcon />
-                    {_t("encryption|access_secret_storage_dialog|key_validation_text|wrong_security_key")}
+                    {this.hasPassphrase()
+                        ? _t("encryption|access_secret_storage_dialog|key_validation_text|wrong_security_key_or_phrase")
+                        : _t("encryption|access_secret_storage_dialog|key_validation_text|wrong_security_key")}
                 </>
             );
             classes = "mx_AccessSecretStorageDialog_recoveryKeyFeedback--invalid";
@@ -170,8 +172,18 @@ export default class AccessSecretStorageDialog extends React.PureComponent<IProp
         );
     }
 
+    private hasPassphrase(): boolean {
+        return !!(this.props.keyInfo?.passphrase?.salt && this.props.keyInfo?.passphrase?.iterations);
+    }
+
     public render(): React.ReactNode {
-        const title = _t("encryption|access_secret_storage_dialog|security_key_title");
+        const hasPassphrase = this.hasPassphrase();
+        const title = hasPassphrase
+            ? _t("encryption|access_secret_storage_dialog|security_key_or_phrase_title")
+            : _t("encryption|access_secret_storage_dialog|security_key_title");
+        const label = hasPassphrase
+            ? _t("encryption|access_secret_storage_dialog|security_key_or_phrase_label")
+            : _t("encryption|access_secret_storage_dialog|security_key_label");
 
         const recoveryKeyFeedback = this.getRecoveryKeyFeedback();
         const content = (
@@ -186,8 +198,8 @@ export default class AccessSecretStorageDialog extends React.PureComponent<IProp
                         <PasswordInput
                             ref={this.inputRef}
                             id="mx_securityKey"
-                            title={_t("encryption|access_secret_storage_dialog|security_key_label")}
-                            placeholder={_t("encryption|access_secret_storage_dialog|security_key_label")}
+                            title={label}
+                            placeholder={label}
                             value={this.state.recoveryKey}
                             onChange={this.onRecoveryKeyChange}
                             autoFocus={true}

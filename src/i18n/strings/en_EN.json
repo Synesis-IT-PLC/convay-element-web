@@ -948,11 +948,14 @@
         "access_secret_storage_dialog": {
             "alternatives": "If you have a security key or security phrase, this will work too.",
             "key_validation_text": {
-                "wrong_security_key": "The recovery key you entered is not correct."
+                "wrong_security_key": "The recovery key you entered is not correct.",
+                "wrong_security_key_or_phrase": "The recovery key or security phrase you entered is not correct."
             },
             "privacy_warning": "Make sure nobody can see this screen!",
             "restoring": "Restoring keys from backup",
             "security_key_label": "Recovery key",
+            "security_key_or_phrase_label": "Recovery key or security phrase",
+            "security_key_or_phrase_title": "Enter your recovery key or security phrase",
             "security_key_title": "Enter your recovery key"
         },
         "bootstrap_title": "Setting up keys",
@@ -1095,6 +1098,7 @@
             "unverified_sessions_toast_title": "You have unverified sessions",
             "use_another_device": "Use another device",
             "use_recovery_key": "Use recovery key",
+            "use_recovery_key_or_phrase": "Use recovery key or security phrase",
             "verification_dialog_title_choose": "Choose how to verify",
             "verification_dialog_title_compare_emojis": "Compare emojis",
             "verification_dialog_title_confirm_green_shield": "Confirm that you see a green shield on your other device",
@@ -1103,6 +1107,7 @@
             "verification_dialog_title_start_on_other_device": "Start verification on the other device",
             "verification_dialog_title_user": "Verification Request",
             "verification_dialog_title_verified": "Device verified",
+            "verification_failed_session_not_signed": "Your recovery key or security phrase was accepted, but this session could not be verified. Reload the page and try again.",
             "verification_skip_warning": "Without verifying, you won't have access to all your messages and may appear as untrusted to others.",
             "verification_success_with_backup": "Your new device is now verified. It has access to your encrypted messages, and other users will see it as trusted.",
             "verification_success_without_backup": "Your new device is now verified. Other users will see it as trusted.",

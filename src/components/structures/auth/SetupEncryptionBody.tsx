@@ -183,7 +183,9 @@ export default class SetupEncryptionBody extends React.Component<IProps, IState>
             if (store.keyInfo) {
                 useRecoveryKeyButton = (
                     <Button kind="primary" onClick={this.onUsePassphraseClick}>
-                        {_t("encryption|verification|use_recovery_key")}
+                        {store.keyInfo.passphrase
+                            ? _t("encryption|verification|use_recovery_key_or_phrase")
+                            : _t("encryption|verification|use_recovery_key")}
                     </Button>
                 );
             }
@@ -211,6 +213,11 @@ export default class SetupEncryptionBody extends React.Component<IProps, IState>
                             </ExternalLink>
                         </span>
                     </EncryptionCardEmphasisedContent>
+                    {store.deviceNotSigned && (
+                        <p className="mx_SetupEncryptionBody_error" role="alert">
+                            {_t("encryption|verification|verification_failed_session_not_signed")}
+                        </p>
+                    )}
                     <EncryptionCardButtons>
                         {verifyButton}
                         {useRecoveryKeyButton}

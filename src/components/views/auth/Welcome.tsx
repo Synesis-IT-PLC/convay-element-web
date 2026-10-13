@@ -86,7 +86,7 @@ export default class Welcome extends React.Component<EmptyObject, IState> {
         if (!pageUrl) {
             // Fall back to default and replace $logoUrl in welcome.html
             replaceMap["$logoUrl"] = this.state.logoUrl;
-            replaceMap["$signInUrl"] = authSignInUrl ?? authRedirectUrl ?? "#/login";
+            replaceMap["$signInUrl"] = authSignInUrl ?? "#/login";
             replaceMap["$signUpUrl"] = authSignUpUrl ?? authRedirectUrl ?? "#/register";
             pageUrl = "welcome.html";
         }

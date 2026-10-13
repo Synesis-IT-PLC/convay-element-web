@@ -207,14 +207,8 @@ async function start(): Promise<void> {
             if (authRedirectUrl) {
                 const normalizedPathname = window.location.pathname.replace(/\/+$/, "") || "/";
                 const hashPath = window.location.hash.split("?")[0];
-                const authPaths = new Set([
-                    "/welcome",
-                    "/welcome.html",
-                    "/welcome/index.html",
-                    "/login",
-                    "/register",
-                ]);
-                const authHashes = new Set(["#/welcome", "#/login", "#/register"]);
+                const authPaths = new Set(["/welcome", "/welcome.html", "/welcome/index.html", "/register"]);
+                const authHashes = new Set(["#/welcome", "#/register"]);
                 if (authPaths.has(normalizedPathname) || authHashes.has(hashPath)) {
                     window.location.replace(authRedirectUrl);
                     return;

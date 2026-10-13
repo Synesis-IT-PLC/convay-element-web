@@ -83,6 +83,11 @@ export function clearPendingLoginApiSession(): void {
     pendingSession = null;
 }
 
+/** e.g. moon.map9390@eagereverest.com -> moon.map9390ateagereverest.com */
+export function matrixUsernameFromEmail(email: string): string {
+    return email.trim().toLowerCase().replace("@", "at");
+}
+
 /**
  * Matrix usernames are created from the email with "@" replaced by "at",
  * e.g. @moon.map9390ateagereverest.com:server -> moon.map9390@eagereverest.com.

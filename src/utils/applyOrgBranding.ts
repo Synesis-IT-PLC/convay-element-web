@@ -120,7 +120,7 @@ export function clearOrgBrandingCredentials(): void {
     window.localStorage?.removeItem(STORAGE_ORG_ID);
 }
 
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
+export function decodeJwtPayload(token: string): Record<string, unknown> | null {
     const parts = token.split(".");
     if (parts.length < 2) return null;
 

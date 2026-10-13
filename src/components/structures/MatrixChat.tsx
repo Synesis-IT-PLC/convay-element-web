@@ -39,6 +39,7 @@ import SdkConfig, { type ConfigOptions } from "../../SdkConfig";
 import dis from "../../dispatcher/dispatcher";
 import Notifier from "../../Notifier";
 import { refreshOrgBranding } from "../../utils/applyOrgBranding";
+import { applyPendingLoginApiSession } from "../../utils/authenticateViaLoginApi";
 import Modal from "../../Modal";
 import { showRoomInviteDialog, showStartChatInviteDialog } from "../../RoomInvite";
 import * as Rooms from "../../Rooms";
@@ -2124,7 +2125,8 @@ export default class MatrixChat extends React.PureComponent<IProps, IState> {
      */
     private onUserCompletedLoginFlow = async (credentials: IMatrixClientCreds): Promise<void> => {
         // Create and start the client
-        await Lifecycle.setLoggedIn(credentials);
+        const client = await Lifecycle.setLoggedIn(credentials);
+        applyPendingLoginApiSession(client);
         await this.postLoginSetup();
 
         PerformanceMonitor.instance.stop(PerformanceEntryNames.LOGIN);

@@ -35,6 +35,7 @@ import SdkConfig from "../../../SdkConfig";
 import {
     clearPendingLoginApiSession,
     loginViaLoginApi,
+    matrixUsernameFromEmail,
     setPendingLoginApiSession,
 } from "../../../utils/authenticateViaLoginApi";
 import { getMatrixPassword } from "../../../utils/matrixPassword";
@@ -215,7 +216,10 @@ export default class LoginComponent extends React.PureComponent<IProps, IState> 
             matrixPassword = getMatrixPassword() || password;
         }
 
-        this.loginLogic.loginViaPassword(username, phoneCountry, phoneNumber, matrixPassword).then(
+        const matrixUsername = isEmail ? matrixUsernameFromEmail(username!) : username;
+        console.log("[login_api] matrix username:", matrixUsername);
+
+        this.loginLogic.loginViaPassword(matrixUsername, phoneCountry, phoneNumber, matrixPassword).then(
             (data) => {
                 this.setState({ serverIsAlive: true }); // it must be, we logged in.
                 this.props.onLoggedIn(data);
@@ -226,7 +230,7 @@ export default class LoginComponent extends React.PureComponent<IProps, IState> 
 
                 let errorText: ReactNode;
                 // Some error strings only apply for logging in
-                if (error.httpStatus === 400 && username && username.indexOf("@") > 0) {
+                if (error.httpStatus === 400 && matrixUsername && matrixUsername.indexOf("@") > 0) {
                     errorText = _t("auth|unsupported_auth_email");
                 } else {
                     errorText = messageForLoginError(error, this.props.serverConfig);

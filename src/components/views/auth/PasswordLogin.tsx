@@ -371,7 +371,7 @@ export default class PasswordLogin extends React.PureComponent<IProps, IState> {
                     kind="link"
                     onClick={this.onForgotPasswordClick}
                 >
-                    {_t("auth|reset_password_button")}
+                    {/* {_t("auth|reset_password_button")} */}
                 </AccessibleButton>
             );
         }

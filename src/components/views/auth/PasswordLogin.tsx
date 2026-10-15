@@ -8,6 +8,7 @@ Please see LICENSE files in the repository root for full details.
 
 import React, { type JSX, type SyntheticEvent } from "react";
 import classNames from "classnames";
+import { VisibilityOnIcon, VisibilityOffIcon } from "@vector-im/compound-design-tokens/assets/web/icons";
 
 import { _t } from "../../../languageHandler";
 import SdkConfig from "../../../SdkConfig";
@@ -45,6 +46,7 @@ interface IState {
     fieldValid: Partial<Record<LoginField, boolean>>;
     loginType: LoginField.Email | LoginField.MatrixId | LoginField.Phone;
     password: string;
+    showPassword: boolean;
 }
 
 const enum LoginField {
@@ -80,6 +82,7 @@ export default class PasswordLogin extends React.PureComponent<IProps, IState> {
             fieldValid: {},
             loginType: LoginField.MatrixId,
             password: "",
+            showPassword: false,
         };
     }
 
@@ -132,6 +135,11 @@ export default class PasswordLogin extends React.PureComponent<IProps, IState> {
 
     private onPasswordChanged = (ev: React.ChangeEvent<HTMLInputElement>): void => {
         this.setState({ password: ev.target.value });
+    };
+
+    private onTogglePasswordVisibility = (ev: ButtonEvent): void => {
+        ev.preventDefault();
+        this.setState((state) => ({ showPassword: !state.showPassword }));
     };
 
     private async verifyFieldsBeforeSubmit(): Promise<boolean> {
@@ -419,7 +427,7 @@ export default class PasswordLogin extends React.PureComponent<IProps, IState> {
                         id="mx_LoginForm_password"
                         className={pwFieldClass}
                         autoComplete="current-password"
-                        type="password"
+                        type={this.state.showPassword ? "text" : "password"}
                         name="password"
                         label={_t("common|password")}
                         value={this.state.password}
@@ -427,6 +435,16 @@ export default class PasswordLogin extends React.PureComponent<IProps, IState> {
                         disabled={this.props.busy}
                         autoFocus={autoFocusPassword}
                         onValidate={this.onPasswordValidate}
+                        postfixComponent={
+                            <AccessibleButton
+                                className="mx_PasswordLogin_toggle"
+                                onClick={this.onTogglePasswordVisibility}
+                                aria-label={this.state.showPassword ? _t("action|hide") : _t("action|show")}
+                                disabled={this.props.busy}
+                            >
+                                {this.state.showPassword ? <VisibilityOffIcon /> : <VisibilityOnIcon />}
+                            </AccessibleButton>
+                        }
                         ref={(field) => {
                             this[LoginField.Password] = field;
                         }}

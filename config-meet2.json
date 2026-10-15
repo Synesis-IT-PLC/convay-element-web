@@ -32,6 +32,9 @@
         "feature_group_calls": true,
         "feature_element_call_video_rooms": true
     },
+    "embedded_pages": {
+        "login_for_welcome": true
+    },
     "default_federate": true,
     "default_theme": "light",
     "room_directory": {

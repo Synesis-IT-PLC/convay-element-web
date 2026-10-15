@@ -267,6 +267,28 @@ Please see LICENSE files in the repository root for full details.
     margin: 1em 0;
 }
 
+.mx_AuthBody .mx_Field_postfix:has(.mx_PasswordLogin_toggle) {
+    border-left: none;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+}
+
+.mx_PasswordLogin_toggle {
+    display: flex;
+    cursor: pointer;
+    color: var(--cpd-color-icon-secondary);
+
+    svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    &:hover {
+        color: var(--cpd-color-icon-primary);
+    }
+}
+
 @media only screen and (max-width: 480px) {
     .mx_AuthBody {
         border-radius: 4px;

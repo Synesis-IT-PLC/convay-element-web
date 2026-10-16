@@ -250,8 +250,8 @@ describe("InviteDialog", () => {
             );
 
             await screen.findByText("Mrs Alice");
-            // expect the email and MXID to be visible
-            await screen.findByText(aliceId);
+            // expect the email and MXID (without the local server name) to be visible
+            await screen.findByText("@alice");
             await screen.findByText(aliceEmail);
             expect(mockClient.lookupThreePid).toHaveBeenCalledWith("email", aliceEmail, expect.anything());
             expect(mockClient.getProfileInfo).toHaveBeenCalledWith(aliceId);

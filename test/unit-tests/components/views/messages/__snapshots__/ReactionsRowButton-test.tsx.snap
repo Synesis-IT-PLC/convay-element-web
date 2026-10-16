@@ -3,6 +3,8 @@
 exports[`ReactionsRowButton renders reaction row button custom image reactions correctly 1`] = `
 <DocumentFragment>
   <div
+    aria-expanded="false"
+    aria-haspopup="true"
     aria-label="@user1:example.com and @user2:example.com reacted with :test:"
     class="mx_AccessibleButton mx_ReactionsRowButton"
     role="button"
@@ -28,6 +30,8 @@ exports[`ReactionsRowButton renders reaction row button custom image reactions c
 exports[`ReactionsRowButton renders reaction row button custom image reactions correctly 2`] = `
 <DocumentFragment>
   <div
+    aria-expanded="false"
+    aria-haspopup="true"
     aria-label="@user1:example.com and @user2:example.com reacted with :test:"
     class="mx_AccessibleButton mx_ReactionsRowButton"
     role="button"
@@ -53,6 +57,8 @@ exports[`ReactionsRowButton renders reaction row button custom image reactions c
 exports[`ReactionsRowButton renders reaction row button emojis correctly 1`] = `
 <DocumentFragment>
   <div
+    aria-expanded="false"
+    aria-haspopup="true"
     aria-label="@user1:example.com and @user2:example.com reacted with 👍"
     class="mx_AccessibleButton mx_ReactionsRowButton"
     role="button"
@@ -77,6 +83,8 @@ exports[`ReactionsRowButton renders reaction row button emojis correctly 1`] = `
 exports[`ReactionsRowButton renders reaction row button emojis correctly 2`] = `
 <DocumentFragment>
   <div
+    aria-expanded="false"
+    aria-haspopup="true"
     aria-label="@user1:example.com and @user2:example.com reacted with 👍"
     class="mx_AccessibleButton mx_ReactionsRowButton"
     role="button"
@@ -101,6 +109,8 @@ exports[`ReactionsRowButton renders reaction row button emojis correctly 2`] = `
 exports[`ReactionsRowButton renders without a room 1`] = `
 <DocumentFragment>
   <div
+    aria-expanded="false"
+    aria-haspopup="true"
     class="mx_AccessibleButton mx_ReactionsRowButton"
     role="button"
     tabindex="0"

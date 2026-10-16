@@ -8,6 +8,8 @@ Please see LICENSE files in the repository root for full details.
 
 import type { UserIdentifierCustomisations } from "@element-hq/element-web-module-api";
 
+import { MatrixClientPeg } from "../MatrixClientPeg";
+
 /**
  * Customise display of the user identifier
  * hide userId for guests, display 3pid
@@ -18,6 +20,10 @@ function getDisplayUserIdentifier(
     userId: string,
     { roomId, withDisplayName }: { roomId?: string; withDisplayName?: boolean },
 ): string | null {
+    const domain = MatrixClientPeg.get()?.getDomain();
+    if (domain && userId.endsWith(":" + domain)) {
+        return userId.slice(0, -(domain.length + 1));
+    }
     return userId;
 }
 

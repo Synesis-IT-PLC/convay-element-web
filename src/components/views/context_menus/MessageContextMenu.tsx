@@ -25,7 +25,7 @@ import {
     ChevronUpIcon,
     EditIcon,
     ErrorSolidIcon,
-    InlineCodeIcon,
+    // InlineCodeIcon,
     LinkIcon,
     PinIcon,
     QuoteIcon,
@@ -58,7 +58,7 @@ import { type ButtonEvent } from "../elements/AccessibleButton";
 import { copyPlaintext, getSelectedText } from "../../../utils/strings";
 import ContextMenu, { toRightOf, type MenuProps } from "../../structures/ContextMenu";
 import ReactionPicker from "../emojipicker/ReactionPicker";
-import ViewSource from "../../structures/ViewSource";
+// import ViewSource from "../../structures/ViewSource";
 import { createRedactEventDialog } from "../dialogs/ConfirmRedactDialog";
 import { ShareDialog } from "../dialogs/ShareDialog";
 import RoomContext, { TimelineRenderingType } from "../../../contexts/RoomContext";
@@ -247,16 +247,16 @@ export default class MessageContextMenu extends React.Component<IProps, IState> 
         this.closeMenu();
     };
 
-    private onViewSourceClick = (): void => {
-        Modal.createDialog(
-            ViewSource,
-            {
-                mxEvent: this.props.mxEvent,
-            },
-            "mx_Dialog_viewsource",
-        );
-        this.closeMenu();
-    };
+    // private onViewSourceClick = (): void => {
+    //     Modal.createDialog(
+    //         ViewSource,
+    //         {
+    //             mxEvent: this.props.mxEvent,
+    //         },
+    //         "mx_Dialog_viewsource",
+    //     );
+    //     this.closeMenu();
+    // };
 
     private onRedactClick = (): void => {
         const { mxEvent, onCloseDialog } = this.props;
@@ -479,13 +479,13 @@ export default class MessageContextMenu extends React.Component<IProps, IState> 
         }
 
         // This is specifically not behind the developerMode flag to give people insight into the Matrix
-        const viewSourceButton = (
-            <IconizedContextMenuOption
-                icon={<InlineCodeIcon />}
-                label={_t("timeline|context_menu|view_source")}
-                onClick={this.onViewSourceClick}
-            />
-        );
+        // const viewSourceButton = (
+        //     <IconizedContextMenuOption
+        //         icon={<InlineCodeIcon />}
+        //         label={_t("timeline|context_menu|view_source")}
+        //         onClick={this.onViewSourceClick}
+        //     />
+        // );
 
         let unhidePreviewButton: JSX.Element | undefined;
         if (eventTileOps?.isWidgetHidden()) {
@@ -732,7 +732,7 @@ export default class MessageContextMenu extends React.Component<IProps, IState> 
                 {externalURLButton}
                 {jumpToRelatedEventButton}
                 {unhidePreviewButton}
-                {viewSourceButton}
+                {/* {viewSourceButton} */}
                 {resendReactionsButton}
                 {collapseReplyChainButton}
             </IconizedContextMenuOptionList>

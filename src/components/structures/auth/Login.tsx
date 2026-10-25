@@ -31,6 +31,14 @@ import AccessibleButton, { type ButtonEvent } from "../../views/elements/Accessi
 import { type ValidatedServerConfig } from "../../../utils/ValidatedServerConfig";
 import { filterBoolean } from "../../../utils/arrays";
 import { startOidcLogin } from "../../../utils/oidc/authorize";
+import SdkConfig from "../../../SdkConfig";
+import {
+    clearPendingLoginApiSession,
+    loginViaLoginApi,
+    matrixUsernameFromEmail,
+    setPendingLoginApiSession,
+} from "../../../utils/authenticateViaLoginApi";
+import { getMatrixPassword } from "../../../utils/matrixPassword";
 
 interface IProps {
     serverConfig: ValidatedServerConfig;
@@ -188,17 +196,41 @@ export default class LoginComponent extends React.PureComponent<IProps, IState> 
             loginIncorrect: false,
         });
 
-        this.loginLogic.loginViaPassword(username, phoneCountry, phoneNumber, password).then(
+        let matrixPassword = password;
+        clearPendingLoginApiSession();
+        const isEmail = !!username && username.indexOf("@") > 0;
+        console.log("[login_api] password login | isEmail:", isEmail, "| login_api:", SdkConfig.get("login_api"));
+        if (SdkConfig.get("login_api") && isEmail) {
+            const result = await loginViaLoginApi(username!, password);
+            if (this.unmounted) return;
+            if (!result.ok) {
+                this.setState({
+                    busy: false,
+                    busyLoggingIn: false,
+                    errorText: _t("auth|incorrect_password"),
+                    loginIncorrect: true,
+                });
+                return;
+            }
+            setPendingLoginApiSession({ email: username!, accessToken: result.accessToken });
+            matrixPassword = getMatrixPassword() || password;
+        }
+
+        const matrixUsername = isEmail ? matrixUsernameFromEmail(username!) : username;
+        console.log("[login_api] matrix username:", matrixUsername);
+
+        this.loginLogic.loginViaPassword(matrixUsername, phoneCountry, phoneNumber, matrixPassword).then(
             (data) => {
                 this.setState({ serverIsAlive: true }); // it must be, we logged in.
                 this.props.onLoggedIn(data);
             },
             (error) => {
+                clearPendingLoginApiSession();
                 if (this.unmounted) return;
 
                 let errorText: ReactNode;
                 // Some error strings only apply for logging in
-                if (error.httpStatus === 400 && username && username.indexOf("@") > 0) {
+                if (error.httpStatus === 400 && matrixUsername && matrixUsername.indexOf("@") > 0) {
                     errorText = _t("auth|unsupported_auth_email");
                 } else {
                     errorText = messageForLoginError(error, this.props.serverConfig);
@@ -513,7 +545,7 @@ export default class LoginComponent extends React.PureComponent<IProps, IState> 
         } else if (SettingsStore.getValue(UIFeature.Registration)) {
             footer = (
                 <span className="mx_AuthBody_changeFlow">
-                    {_t(
+                    {/* {_t(
                         "auth|create_account_prompt",
                         {},
                         {
@@ -523,7 +555,7 @@ export default class LoginComponent extends React.PureComponent<IProps, IState> 
                                 </AccessibleButton>
                             ),
                         },
-                    )}
+                    )} */}
                 </span>
             );
         }
@@ -538,11 +570,11 @@ export default class LoginComponent extends React.PureComponent<IProps, IState> 
                     </h1>
                     {errorTextSection}
                     {serverDeadSection}
-                    <ServerPicker
+                    {/* <ServerPicker
                         serverConfig={this.props.serverConfig}
                         onServerConfigChange={this.props.onServerConfigChange}
                         disabled={this.isBusy()}
-                    />
+                    /> */}
                     {this.renderLoginComponentForFlows()}
                     {footer}
                 </AuthBody>

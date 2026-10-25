@@ -6,17 +6,18 @@ SPDX-License-Identifier: AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Com
 Please see LICENSE files in the repository root for full details.
 */
 
-import React from "react";
+import React, { createRef } from "react";
 import classNames from "classnames";
-import { EventType, type MatrixEvent, RelationType } from "matrix-js-sdk/src/matrix";
+import { type MatrixEvent } from "matrix-js-sdk/src/matrix";
 
 import { mediaFromMxc } from "../../../customisations/Media";
 import { _t } from "../../../languageHandler";
 import { formatList } from "../../../utils/FormattingUtils";
-import dis from "../../../dispatcher/dispatcher";
 import ReactionsRowButtonTooltip from "./ReactionsRowButtonTooltip";
 import AccessibleButton from "../elements/AccessibleButton";
 import MatrixClientContext from "../../../contexts/MatrixClientContext";
+import ContextMenu, { aboveLeftOf } from "../../structures/ContextMenu";
+import MemberAvatar from "../avatars/MemberAvatar";
 import { REACTION_SHORTCODE_KEY } from "./ReactionsRow";
 
 export interface IProps {
@@ -30,30 +31,30 @@ export interface IProps {
     reactionEvents: MatrixEvent[];
     // A possible Matrix event if the current user has voted for this type
     myReactionEvent?: MatrixEvent;
-    // Whether to prevent quick-reactions by clicking on this reaction
-    disabled?: boolean;
     // Whether to render custom image reactions
     customReactionImagesEnabled?: boolean;
 }
 
-export default class ReactionsRowButton extends React.PureComponent<IProps> {
+interface IState {
+    menuDisplayed: boolean;
+}
+
+export default class ReactionsRowButton extends React.PureComponent<IProps, IState> {
     public static contextType = MatrixClientContext;
     declare public context: React.ContextType<typeof MatrixClientContext>;
 
+    private buttonRef = createRef<HTMLDivElement>();
+
+    public state: IState = {
+        menuDisplayed: false,
+    };
+
     public onClick = (): void => {
-        const { mxEvent, myReactionEvent, content } = this.props;
-        if (myReactionEvent) {
-            this.context.redactEvent(mxEvent.getRoomId()!, myReactionEvent.getId()!);
-        } else {
-            this.context.sendEvent(mxEvent.getRoomId()!, EventType.Reaction, {
-                "m.relates_to": {
-                    rel_type: RelationType.Annotation,
-                    event_id: mxEvent.getId()!,
-                    key: content,
-                },
-            });
-            dis.dispatch({ action: "message_sent" });
-        }
+        this.setState({ menuDisplayed: true });
+    };
+
+    private closeMenu = (): void => {
+        this.setState({ menuDisplayed: false });
     };
 
     public render(): React.ReactNode {
@@ -109,25 +110,59 @@ export default class ReactionsRowButton extends React.PureComponent<IProps> {
             }
         }
 
+        let contextMenu: React.ReactNode;
+        if (this.state.menuDisplayed && this.buttonRef.current && room) {
+            const buttonRect = this.buttonRef.current.getBoundingClientRect();
+            contextMenu = (
+                <ContextMenu {...aboveLeftOf(buttonRect)} onFinished={this.closeMenu} managed={false} focusLock>
+                    <div className="mx_ReactionsRowButton_reactorList">
+                        <div className="mx_ReactionsRowButton_reactorList_header">
+                            {reactionContent}
+                            <span className="mx_ReactionsRowButton_count">{count}</span>
+                        </div>
+                        <ul className="mx_ReactionsRowButton_reactorList_items">
+                            {reactionEvents.map((reactionEvent) => {
+                                const sender = reactionEvent.getSender()!;
+                                const member = room.getMember(sender);
+                                return (
+                                    <li key={sender} className="mx_ReactionsRowButton_reactorList_item">
+                                        <MemberAvatar member={member} fallbackUserId={sender} size="24px" />
+                                        <span className="mx_ReactionsRowButton_reactorList_name">
+                                            {member?.name ?? sender}
+                                        </span>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </div>
+                </ContextMenu>
+            );
+        }
+
         return (
-            <ReactionsRowButtonTooltip
-                mxEvent={this.props.mxEvent}
-                content={content}
-                reactionEvents={reactionEvents}
-                customReactionImagesEnabled={this.props.customReactionImagesEnabled}
-            >
-                <AccessibleButton
-                    className={classes}
-                    aria-label={label}
-                    onClick={this.onClick}
-                    disabled={this.props.disabled}
+            <>
+                <ReactionsRowButtonTooltip
+                    mxEvent={this.props.mxEvent}
+                    content={content}
+                    reactionEvents={reactionEvents}
+                    customReactionImagesEnabled={this.props.customReactionImagesEnabled}
                 >
-                    {reactionContent}
-                    <span className="mx_ReactionsRowButton_count" aria-hidden="true">
-                        {count}
-                    </span>
-                </AccessibleButton>
-            </ReactionsRowButtonTooltip>
+                    <AccessibleButton
+                        ref={this.buttonRef}
+                        className={classes}
+                        aria-label={label}
+                        aria-haspopup="true"
+                        aria-expanded={this.state.menuDisplayed}
+                        onClick={this.onClick}
+                    >
+                        {reactionContent}
+                        <span className="mx_ReactionsRowButton_count" aria-hidden="true">
+                            {count}
+                        </span>
+                    </AccessibleButton>
+                </ReactionsRowButtonTooltip>
+                {contextMenu}
+            </>
         );
     }
 }

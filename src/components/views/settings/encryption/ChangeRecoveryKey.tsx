@@ -433,6 +433,9 @@ function PassphraseForm({
                 if (isValid) onContinueClick();
             }}
         >
+            <Text as="p" size="sm" className="mx_PassphraseForm_hint">
+                {_t("settings|key_backup|setup_secure_backup|phrase_requirements_hint")}
+            </Text>
             <PassphraseField
                 id="mx_ChangeRecoveryKey_passphrase"
                 minScore={PASSPHRASE_MIN_SCORE}

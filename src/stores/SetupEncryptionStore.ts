@@ -22,6 +22,10 @@ import { AccessCancelledError, accessSecretStorage } from "../SecurityManager";
 import { asyncSome } from "../utils/arrays";
 import { initialiseDehydrationIfEnabled } from "../utils/device/dehydration";
 
+// How long to wait for the server to confirm the signature on this session after unlocking secret storage
+const DEVICE_SIGNATURE_TIMEOUT_MS = 20000;
+const DEVICE_SIGNATURE_POLL_INTERVAL_MS = 1000;
+
 export enum Phase {
     Loading = 0,
     Intro = 1,
@@ -46,6 +50,9 @@ export class SetupEncryptionStore extends EventEmitter {
     // Descriptor of the key that the secrets we want are encrypted with
     public keyInfo: SecretStorage.SecretStorageKeyDescription | null = null;
     public hasDevicesToVerifyAgainst?: boolean;
+    // Set when the recovery key/phrase was accepted but this session did not end up cross-signed
+    public deviceNotSigned = false;
+    private usingPassPhrase = false;
 
     public static sharedInstance(): SetupEncryptionStore {
         if (!window.mxSetupEncryptionStore) window.mxSetupEncryptionStore = new SetupEncryptionStore();
@@ -125,6 +132,8 @@ export class SetupEncryptionStore extends EventEmitter {
     public async usePassPhrase(): Promise<void> {
         logger.debug("SetupEncryptionStore.usePassphrase");
         this.phase = Phase.Busy;
+        this.deviceNotSigned = false;
+        this.usingPassPhrase = true;
         this.emit("update");
         try {
             const cli = MatrixClientPeg.safeGet();
@@ -157,11 +166,18 @@ export class SetupEncryptionStore extends EventEmitter {
                 }).catch(reject);
             });
 
-            if (await cli.getCrypto()?.getCrossSigningKeyId()) {
+            if (await this.waitForThisDeviceSigned()) {
                 logger.debug("SetupEncryptionStore.usePassphrase: done");
                 this.phase = Phase.Done;
-                this.emit("update");
+            } else {
+                logger.error(
+                    "SetupEncryptionStore.usePassphrase: secret storage unlocked, but this session is not " +
+                        "cross-signed. Check that /keys/signatures/upload succeeded.",
+                );
+                this.deviceNotSigned = true;
+                this.phase = Phase.Intro;
             }
+            this.emit("update");
         } catch (e) {
             if (e instanceof AccessCancelledError) {
                 logger.debug("SetupEncryptionStore.usePassphrase: user cancelled access to secret storage");
@@ -171,11 +187,37 @@ export class SetupEncryptionStore extends EventEmitter {
 
             this.phase = Phase.Intro;
             this.emit("update");
+        } finally {
+            this.usingPassPhrase = false;
         }
+    }
+
+    private async isThisDeviceSigned(): Promise<boolean> {
+        const cli = MatrixClientPeg.safeGet();
+        const status = await cli.getCrypto()?.getDeviceVerificationStatus(cli.getSafeUserId(), cli.getDeviceId()!);
+        return !!status?.crossSigningVerified;
+    }
+
+    /**
+     * Wait until this session's cross-signing signature has been uploaded and seen by the client,
+     * which happens asynchronously after the private keys are imported from secret storage.
+     */
+    private async waitForThisDeviceSigned(): Promise<boolean> {
+        const cli = MatrixClientPeg.safeGet();
+        if (!(await cli.getCrypto()?.getCrossSigningKeyId())) return false;
+
+        const deadline = Date.now() + DEVICE_SIGNATURE_TIMEOUT_MS;
+        while (Date.now() < deadline) {
+            if (await this.isThisDeviceSigned()) return true;
+            await new Promise((resolve) => setTimeout(resolve, DEVICE_SIGNATURE_POLL_INTERVAL_MS));
+        }
+        return this.isThisDeviceSigned();
     }
 
     private onUserTrustStatusChanged = async (userId: string): Promise<void> => {
         if (userId !== MatrixClientPeg.safeGet().getSafeUserId()) return;
+        // usePassPhrase decides for itself once this session is actually signed
+        if (this.usingPassPhrase) return;
         const publicKeysTrusted = await MatrixClientPeg.safeGet().getCrypto()?.getCrossSigningKeyId();
         if (publicKeysTrusted) {
             this.phase = Phase.Done;

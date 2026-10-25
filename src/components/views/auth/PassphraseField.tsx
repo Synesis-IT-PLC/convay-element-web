@@ -15,6 +15,7 @@ import withValidation, { type IFieldState, type IValidationResult } from "../ele
 import { _t, _td } from "../../../languageHandler";
 import Field, { type IInputProps } from "../elements/Field";
 import { MatrixClientPeg } from "../../../MatrixClientPeg";
+import PasswordVisibilityToggle from "./PasswordVisibilityToggle";
 
 interface IProps extends Omit<IInputProps, "onValidate" | "element"> {
     autoFocus?: boolean;
@@ -31,12 +32,20 @@ interface IProps extends Omit<IInputProps, "onValidate" | "element"> {
     labelStrongPassword: TranslationKey;
     labelAllowedButUnsafe: TranslationKey;
     tooltipAlignment?: ComponentProps<typeof Field>["tooltipAlignment"];
+    // Show an eye button that lets the user reveal what they typed
+    showVisibilityToggle?: boolean;
 
     onChange(ev: React.FormEvent<HTMLElement>): void;
     onValidate?(result: IValidationResult): void;
 }
 
-class PassphraseField extends PureComponent<IProps> {
+interface IState {
+    visible: boolean;
+}
+
+class PassphraseField extends PureComponent<IProps, IState> {
+    public state: IState = { visible: false };
+
     public static defaultProps = {
         label: _td("common|password"),
         labelEnterPassword: _td("auth|password_field_label"),
@@ -106,13 +115,21 @@ class PassphraseField extends PureComponent<IProps> {
                 autoFocus={this.props.autoFocus}
                 className={classNames("mx_PassphraseField", this.props.className)}
                 ref={this.props.fieldRef}
-                type="password"
+                type={this.state.visible ? "text" : "password"}
                 autoComplete="new-password"
                 label={_t(this.props.label)}
                 value={this.props.value}
                 onChange={this.props.onChange}
                 onValidate={this.onValidate}
                 tooltipAlignment={this.props.tooltipAlignment}
+                postfixComponent={
+                    this.props.showVisibilityToggle ? (
+                        <PasswordVisibilityToggle
+                            visible={this.state.visible}
+                            onToggle={() => this.setState(({ visible }) => ({ visible: !visible }))}
+                        />
+                    ) : undefined
+                }
             />
         );
     }

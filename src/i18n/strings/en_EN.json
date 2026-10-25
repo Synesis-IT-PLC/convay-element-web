@@ -2784,6 +2784,7 @@
                 "generate_security_key_title": "Generate a Recovery Key",
                 "pass_phrase_match_failed": "That doesn't match.",
                 "pass_phrase_match_success": "That matches!",
+                "phrase_requirements_hint": "Your Security Phrase should be at least 12 characters long. For a stronger phrase, mix uppercase and lowercase letters, numbers and special characters (e.g. ! @ # $), or use 4 or more random words. Avoid common words, names, dates and patterns like 'qwerty' or '1234'.",
                 "phrase_strong_enough": "Great! This Security Phrase looks strong enough.",
                 "secret_storage_query_failure": "Unable to query secret storage status",
                 "security_key_safety_reminder": "Store your Recovery Key somewhere safe, like a password manager or a safe, as it's used to safeguard your encrypted data.",

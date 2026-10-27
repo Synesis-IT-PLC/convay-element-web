@@ -38,7 +38,12 @@ import { resetKeyBackupAndWait } from "../../../../utils/crypto/resetKeyBackup";
 /**
  * The minimum zxcvbn score required for a security phrase.
  */
-const PASSPHRASE_MIN_SCORE = 4;
+const PASSPHRASE_MIN_SCORE = 3;
+
+/**
+ * The maximum number of characters allowed in a security phrase.
+ */
+const PASSPHRASE_MAX_LENGTH = 64;
 
 /**
  * The possible states of the component.
@@ -439,6 +444,8 @@ function PassphraseForm({
             <PassphraseField
                 id="mx_ChangeRecoveryKey_passphrase"
                 minScore={PASSPHRASE_MIN_SCORE}
+                showRequirementsChecklist={true}
+                maxPhraseLength={PASSPHRASE_MAX_LENGTH}
                 value={passphrase}
                 onChange={(evt) => onPassphraseChange((evt.target as HTMLInputElement).value)}
                 onValidate={(result) => setIsValid(!!result.valid)}
@@ -446,7 +453,7 @@ function PassphraseForm({
                 showVisibilityToggle={true}
                 label={_td("settings|key_backup|setup_secure_backup|enter_phrase_title")}
                 labelEnterPassword={_td("settings|key_backup|setup_secure_backup|enter_phrase_title")}
-                labelStrongPassword={_td("settings|key_backup|setup_secure_backup|phrase_strong_enough")}
+                labelStrongPassword={_td("settings|key_backup|setup_secure_backup|phrase_looks_great")}
                 labelAllowedButUnsafe={_td("settings|key_backup|setup_secure_backup|phrase_strong_enough")}
             />
             <EncryptionCardButtons>

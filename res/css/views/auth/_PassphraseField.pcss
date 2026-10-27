@@ -29,3 +29,8 @@ progress.mx_PassphraseField_progress {
         @mixin ProgressBarColour $PassphraseStrengthHigh;
     }
 }
+
+/* The tooltip is anchored to the input, so shift it past the visibility toggle that sits to the input's right */
+[role="tooltip"]:has(.mx_PassphraseField_requirements) {
+    margin-left: 40px;
+}

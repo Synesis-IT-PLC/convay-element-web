@@ -20,10 +20,13 @@ import PasswordVisibilityToggle from "./PasswordVisibilityToggle";
 
 const PASSPHRASE_REQUIREMENTS: { key: string; label: TranslationKey; test: (value: string) => boolean }[] = [
     { key: "length", label: _td("auth|passphrase_requirement_length"), test: (v) => v.length >= 12 },
-    { key: "number", label: _td("auth|passphrase_requirement_number"), test: (v) => /\p{N}/u.test(v) },
-    { key: "special", label: _td("auth|passphrase_requirement_special"), test: (v) => /[^\p{L}\p{N}\s]/u.test(v) },
-    { key: "uppercase", label: _td("auth|passphrase_requirement_uppercase"), test: (v) => /\p{Lu}/u.test(v) },
+    { key: "number", label: _td("auth|passphrase_requirement_number"), test: (v) => /[0-9]/.test(v) },
+    { key: "uppercase", label: _td("auth|passphrase_requirement_uppercase"), test: (v) => /[A-Z]/.test(v) },
 ];
+
+/** Letters must be English (A-Z / a-z); digits and common punctuation are allowed. Spaces are not. */
+const isEnglishOnly = (value: string): boolean =>
+    /^[A-Za-z0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]*$/.test(value);
 
 const meetsAllRequirements = (value: string): boolean => PASSPHRASE_REQUIREMENTS.every(({ test }) => test(value));
 
@@ -126,6 +129,14 @@ class PassphraseField extends PureComponent<IProps, IState> {
                 },
             },
             {
+                key: "englishOnly",
+                skip: function ({ value }) {
+                    return !this.props.showRequirementsChecklist || !value;
+                },
+                test: ({ value }) => isEnglishOnly(value ?? ""),
+                invalid: () => _t("auth|passphrase_english_only"),
+            },
+            {
                 key: "requirements",
                 skip: function ({ value }) {
                     return !this.props.showRequirementsChecklist || !value;
@@ -149,7 +160,7 @@ class PassphraseField extends PureComponent<IProps, IState> {
                     if (complexity && complexity.score >= this.props.minScore) {
                         const value = this.props.value ?? "";
                         if (this.isTooLong(value)) return null;
-                        if (this.props.showRequirementsChecklist && !meetsAllRequirements(value)) {
+                        if (this.props.showRequirementsChecklist && (!isEnglishOnly(value) || !meetsAllRequirements(value))) {
                             return null;
                         }
                         return _t(this.props.labelStrongPassword);

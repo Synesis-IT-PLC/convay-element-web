@@ -253,9 +253,15 @@
             "generic_auth_error": "অথেনটিকেশনের সময় একটি সমস্যা হয়েছে। সাইন-ইন পেজে ফিরে গিয়ে আবার চেষ্টা করুন।",
             "missing_or_invalid_stored_state": "আপনার সাইন-ইন প্রক্রিয়ার জন্য প্রয়োজনীয় হোমসার্ভারের তথ্য ব্রাউজারে খুঁজে পাওয়া যায়নি। অনুগ্রহ করে আবার সাইন-ইন পেজটিতে গিয়ে চেষ্টা করে দেখুন।"
         },
+<<<<<<< HEAD
+        "passphrase_english_only": "শুধুমাত্র ইংরেজি অক্ষর ব্যবহার করুন (A-Z, a-z)। স্পেস ব্যবহার করা যাবে না।",
+        "passphrase_requirement_length": "কমপক্ষে ১২টি অক্ষর",
+        "passphrase_requirement_number": "সংখ্যা (0-9)",
+=======
         "passphrase_requirement_length": "কমপক্ষে ১২টি অক্ষর",
         "passphrase_requirement_number": "সংখ্যা (0-9)",
         "passphrase_requirement_special": "বিশেষ চিহ্ন (! @ # $ …)",
+>>>>>>> 6d4d1f3b717cb8bfb96038e7a3a3a98e56a5bc24
         "passphrase_requirement_uppercase": "বড় হাতের অক্ষর (A-Z)",
         "passphrase_too_long": "নিরাপত্তা বাক্যাংশ সর্বোচ্চ %(max)s অক্ষরের হতে পারে",
         "password_field_keep_going_prompt": "চালিয়ে যান…",
@@ -2790,7 +2796,11 @@
                 "pass_phrase_match_failed": "সেটা মেলে না।",
                 "pass_phrase_match_success": "যে মেলে!",
                 "phrase_looks_great": "আপনার নিরাপত্তা বাক্যাংশটি দারুণ হয়েছে!",
+<<<<<<< HEAD
+                "phrase_requirements_hint": "আপনার নিরাপত্তা বাক্যাংশ ১২ থেকে ৬৪ অক্ষরের মধ্যে হওয়া উচিত এবং শুধুমাত্র ইংরেজি অক্ষর (A-Z, a-z) ব্যবহার করুন।",
+=======
                 "phrase_requirements_hint": "আপনার নিরাপত্তা বাক্যাংশ ১২ থেকে ৬৪ অক্ষরের মধ্যে হওয়া উচিত।",
+>>>>>>> 6d4d1f3b717cb8bfb96038e7a3a3a98e56a5bc24
                 "phrase_strong_enough": "দারুণ! এই নিরাপত্তা বাক্যাংশ যথেষ্ট শক্তিশালী দেখায়।",
                 "secret_storage_query_failure": "সিক্রেট স্টোরেজের অবস্থা জানা যায়নি",
                 "security_key_safety_reminder": "আপনার রিকভারি কী কোথাও নিরাপদে সেভ করুন, যেমন একটি পাসওয়ার্ড ম্যানেজার বা একটি নিরাপদ, কারণ এটি আপনার এনক্রিপ্ট করা ডেটা সুরক্ষিত করতে ব্যবহৃত হয়।",

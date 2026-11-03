@@ -74,15 +74,24 @@ export default class ElementPermalinkConstructor extends PermalinkConstructor {
     public static parseAppRoute(route: string): PermalinkParts {
         const parts = route.split("/");
 
-        if (parts.length < 2) {
-            // we're expecting an entity and an ID of some kind at least
-            throw new Error("URL is missing parts");
-        }
-
         // Split optional query out of last part
         const [lastPartMaybeWithQuery] = parts.splice(-1, 1);
         const [lastPart, query = ""] = lastPartMaybeWithQuery.split("?");
         parts.push(lastPart);
+        const via = query.split(/&?via=/).filter((p) => !!p);
+
+        // matrix.to-style routes: @user:server, !room:server[/$event], #alias:server[/$event]
+        if (parts[0].startsWith("@")) {
+            return PermalinkParts.forUser(parts[0]);
+        } else if (parts[0].startsWith("!") || parts[0].startsWith("#")) {
+            const eventId = parts.length > 1 ? parts.slice(1).join("/") : "";
+            return PermalinkParts.forEvent(parts[0], eventId, via);
+        }
+
+        if (parts.length < 2) {
+            // we're expecting an entity and an ID of some kind at least
+            throw new Error("URL is missing parts");
+        }
 
         const entityType = parts[0];
         const entity = parts[1];
@@ -92,7 +101,6 @@ export default class ElementPermalinkConstructor extends PermalinkConstructor {
         } else if (entityType === "room") {
             // Rejoin the rest because v3 events can have slashes (annoyingly)
             const eventId = parts.length > 2 ? parts.slice(2).join("/") : "";
-            const via = query.split(/&?via=/).filter((p) => !!p);
             return PermalinkParts.forEvent(entity, eventId, via);
         } else {
             throw new Error("Unknown entity type in permalink");

@@ -7,8 +7,20 @@ Please see LICENSE files in the repository root for full details.
 */
 
 import type { UserIdentifierCustomisations } from "@element-hq/element-web-module-api";
-
 import { MatrixClientPeg } from "../MatrixClientPeg";
+
+/**
+ * Strip the `:server` suffix from a Matrix identifier (user ID or room alias)
+ * when it belongs to our own homeserver. Identifiers on other servers are
+ * returned unchanged so they can't be confused with local ones.
+ */
+export function stripOwnServerName(identifier: string): string {
+    const domain = MatrixClientPeg.get()?.getDomain();
+    if (domain && identifier.endsWith(":" + domain)) {
+        return identifier.slice(0, -(domain.length + 1));
+    }
+    return identifier;
+}
 
 /**
  * Customise display of the user identifier
@@ -20,11 +32,7 @@ function getDisplayUserIdentifier(
     userId: string,
     { roomId, withDisplayName }: { roomId?: string; withDisplayName?: boolean },
 ): string | null {
-    const domain = MatrixClientPeg.get()?.getDomain();
-    if (domain && userId.endsWith(":" + domain)) {
-        return userId.slice(0, -(domain.length + 1));
-    }
-    return userId;
+    return stripOwnServerName(userId);
 }
 
 // A real customisation module will define and export one or more of the

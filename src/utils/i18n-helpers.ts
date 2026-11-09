@@ -12,6 +12,7 @@ import SpaceStore from "../stores/spaces/SpaceStore";
 import { _t } from "../languageHandler";
 import DMRoomMap from "./DMRoomMap";
 import { formatList } from "./FormattingUtils";
+import UserIdentifierCustomisations, { stripOwnServerName } from "../customisations/UserIdentifier";
 
 export interface RoomContextDetails {
     details: string | null;
@@ -23,7 +24,13 @@ export function roomContextDetails(room: Room): RoomContextDetails | null {
     // if we’ve got more than 2 users, don’t treat it like a regular DM
     const isGroupDm = room.getMembers().length > 2;
     if (!room.isSpaceRoom() && dmPartner && !isGroupDm) {
-        return { details: dmPartner };
+        return {
+            details:
+                UserIdentifierCustomisations.getDisplayUserIdentifier(dmPartner, {
+                    roomId: room.roomId,
+                    withDisplayName: true,
+                }) || dmPartner,
+        };
     }
 
     const [parent, secondParent, ...otherParents] = SpaceStore.instance.getKnownParents(room.roomId);
@@ -50,5 +57,6 @@ export function roomContextDetails(room: Room): RoomContextDetails | null {
         };
     }
 
-    return { details: room.getCanonicalAlias() };
+    const canonicalAlias = room.getCanonicalAlias();
+    return { details: canonicalAlias && stripOwnServerName(canonicalAlias) };
 }

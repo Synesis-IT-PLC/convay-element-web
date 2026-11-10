@@ -55,29 +55,26 @@ export default class RoomAliasField extends React.PureComponent<IProps, IState> 
 
     private get domainProps(): {
         prefix: JSX.Element;
-        postfix: JSX.Element;
         value: string;
         maxlength: number;
     } {
         const { domain } = this.props;
         const prefix = <span>#</span>;
-        const postfix = domain ? <span title={`:${domain}`}>{`:${domain}`}</span> : <span />;
         const maxlength = domain ? 255 - domain.length - 2 : 255 - 1; // 2 for # and :
         const value = domain
             ? this.props.value.substring(1, this.props.value.length - domain.length - 1)
             : this.props.value.substring(1);
 
-        return { prefix, postfix, value, maxlength };
+        return { prefix, value, maxlength };
     }
 
     public render(): React.ReactNode {
-        const { prefix, postfix, value, maxlength } = this.domainProps;
+        const { prefix, value, maxlength } = this.domainProps;
         return (
             <Field
                 label={this.props.label || _t("room_settings|general|alias_heading")}
                 className="mx_RoomAliasField"
                 prefixComponent={prefix}
-                postfixComponent={postfix}
                 ref={this.fieldRef}
                 onValidate={this.onValidate}
                 placeholder={this.props.placeholder || _t("room_settings|general|alias_field_placeholder_default")}

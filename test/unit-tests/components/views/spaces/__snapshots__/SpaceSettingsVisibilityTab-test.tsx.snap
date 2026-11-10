@@ -339,15 +339,6 @@ exports[`<SpaceSettingsVisibilityTab /> for a public space renders addresses sec
                           >
                             Room address
                           </label>
-                          <span
-                            class="mx_Field_postfix"
-                          >
-                            <span
-                              title=":matrix.org"
-                            >
-                              :matrix.org
-                            </span>
-                          </span>
                         </div>
                         <div
                           class="mx_AccessibleButton mx_AccessibleButton_hasKind mx_AccessibleButton_kind_primary"

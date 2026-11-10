@@ -47,6 +47,7 @@ import {
     Type,
 } from "../../../../accessibility/RovingTabIndex";
 import { mediaFromMxc } from "../../../../customisations/Media";
+import { stripOwnServerName } from "../../../../customisations/UserIdentifier";
 import { Action } from "../../../../dispatcher/actions";
 import defaultDispatcher from "../../../../dispatcher/dispatcher";
 import { type ViewRoomPayload } from "../../../../dispatcher/payloads/ViewRoomPayload";
@@ -610,7 +611,7 @@ const SpotlightDialog: React.FC<IProps> = ({ initialText = "", initialFilter = n
                             id={`mx_SpotlightDialog_button_result_${result.member.userId}_details`}
                             className="mx_SpotlightDialog_result_details"
                         >
-                            {result.member.userId}
+                            {stripOwnServerName(result.member.userId)}
                         </div>
                     </Option>
                 );

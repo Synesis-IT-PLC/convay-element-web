@@ -3869,7 +3869,7 @@
         "title": "%(brand)s does not support this browser"
     },
     "unsupported_server_description": "This server is using an older version of Convay Chat. Upgrade to Convay Chat %(version)s to use %(brand)s without errors.",
-    "unsupported_server_title": "Your server is unsupported",
+     "unsupported_server_title": "Your server is unsupported",
     "update": {
         "changelog": "Changelog",
         "check_action": "Check for update",

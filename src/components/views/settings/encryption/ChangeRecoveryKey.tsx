@@ -363,12 +363,14 @@ function ChooseMethodPanel({ onKeyClick, onPassphraseClick, onCancelClick }: Cho
     return (
         <>
             <div className="mx_ChooseMethodPanel">
+                {/* Security Phrase section
                 <Text as="span" weight="semibold">
                     {_t("settings|key_backup|setup_secure_backup|enter_phrase_title")}
                 </Text>
                 <Text as="span" size="sm">
                     {_t("settings|key_backup|setup_secure_backup|use_phrase_only_you_know")}
                 </Text>
+                */}
                 <Text as="span" weight="semibold">
                     {_t("settings|key_backup|setup_secure_backup|generate_security_key_title")}
                 </Text>
@@ -377,9 +379,11 @@ function ChooseMethodPanel({ onKeyClick, onPassphraseClick, onCancelClick }: Cho
                 </Text>
             </div>
             <EncryptionCardButtons>
+                {/* Security Phrase section
                 <Button type="button" onClick={onPassphraseClick} disabled={isGenerating}>
                     {_t("settings|key_backup|setup_secure_backup|enter_phrase_title")}
                 </Button>
+                */}
                 <Button
                     type="button"
                     kind="secondary"

@@ -11,15 +11,31 @@ import { type MatrixClient } from "matrix-js-sdk/src/matrix";
 import userEvent from "@testing-library/user-event";
 import { mocked } from "jest-mock";
 
+import FileSaver from "file-saver";
+
 import { ChangeRecoveryKey } from "../../../../../../src/components/views/settings/encryption/ChangeRecoveryKey";
 import { createTestClient, withClientContextRenderOptions } from "../../../../../test-utils";
 import { copyPlaintext } from "../../../../../../src/utils/strings";
 import Modal from "../../../../../../src/Modal";
 import ErrorDialog from "../../../../../../src/components/views/dialogs/ErrorDialog";
 import DeviceListener from "../../../../../../src/DeviceListener";
+import {
+    getGoogleDriveClientId,
+    saveRecoveryKeyToGoogleDrive,
+} from "../../../../../../src/utils/googleDrive";
 
 jest.mock("../../../../../../src/utils/strings", () => ({
     copyPlaintext: jest.fn(),
+}));
+
+jest.mock("file-saver", () => ({
+    __esModule: true,
+    default: { saveAs: jest.fn() },
+}));
+
+jest.mock("../../../../../../src/utils/googleDrive", () => ({
+    getGoogleDriveClientId: jest.fn(),
+    saveRecoveryKeyToGoogleDrive: jest.fn(),
 }));
 
 afterEach(() => {
@@ -31,6 +47,8 @@ describe("<ChangeRecoveryKey />", () => {
 
     beforeEach(() => {
         matrixClient = createTestClient();
+        mocked(getGoogleDriveClientId).mockReturnValue(undefined);
+        mocked(saveRecoveryKeyToGoogleDrive).mockReset();
     });
 
     function renderComponent(userHasRecoveryKey = true, onFinish = jest.fn(), onCancelClick = jest.fn()) {
@@ -42,6 +60,18 @@ describe("<ChangeRecoveryKey />", () => {
             />,
             withClientContextRenderOptions(matrixClient),
         );
+    }
+
+    /** Navigate from the info/choose screens to the save-recovery-key panel. */
+    async function goToSaveRecoveryKeyPanel(
+        user: ReturnType<typeof userEvent.setup>,
+        userHasRecoveryKey: boolean,
+    ): Promise<void> {
+        if (!userHasRecoveryKey) {
+            await waitFor(() => user.click(screen.getByRole("button", { name: "Continue" })));
+        }
+        await waitFor(() => user.click(screen.getByRole("button", { name: "Generate a Recovery Key" })));
+        await waitFor(() => expect(screen.getByText("encoded private key")).toBeInTheDocument());
     }
 
     describe("flow to set up a recovery key", () => {
@@ -68,7 +98,7 @@ describe("<ChangeRecoveryKey />", () => {
 
             const onCancelClick = jest.fn();
             const { asFragment } = renderComponent(false, jest.fn(), onCancelClick);
-            await waitFor(() => user.click(screen.getByRole("button", { name: "Continue" })));
+            await goToSaveRecoveryKeyPanel(user, false);
 
             expect(screen.getByText("Save your recovery key somewhere safe")).toBeInTheDocument();
             expect(screen.getByText("encoded private key")).toBeInTheDocument();
@@ -78,8 +108,34 @@ describe("<ChangeRecoveryKey />", () => {
             await user.click(screen.getByRole("button", { name: "Copy" }));
             expect(copyPlaintext).toHaveBeenCalled();
 
+            // Test download button saves recovery-key-<username>.txt
+            await user.click(screen.getByRole("button", { name: "Download" }));
+            expect(FileSaver.saveAs).toHaveBeenCalledWith(expect.any(Blob), "recovery-key-userId.txt");
+
+            // Google Drive is hidden when not configured
+            expect(screen.queryByRole("button", { name: "Save to Google Drive" })).not.toBeInTheDocument();
+
             await user.click(screen.getByRole("button", { name: "Cancel" }));
             expect(onCancelClick).toHaveBeenCalled();
+        });
+
+        it("should save the recovery key to Google Drive when configured", async () => {
+            mocked(getGoogleDriveClientId).mockReturnValue("test-client-id.apps.googleusercontent.com");
+            mocked(saveRecoveryKeyToGoogleDrive).mockResolvedValue(undefined);
+
+            const user = userEvent.setup();
+            renderComponent(false);
+            await goToSaveRecoveryKeyPanel(user, false);
+
+            await user.click(screen.getByRole("button", { name: "Save to Google Drive" }));
+
+            await waitFor(() =>
+                expect(saveRecoveryKeyToGoogleDrive).toHaveBeenCalledWith(
+                    "encoded private key",
+                    "recovery-key-userId.txt",
+                ),
+            );
+            expect(screen.getByText("Recovery key saved to Google Drive")).toBeInTheDocument();
         });
 
         it("should ask the user to enter the recovery key", async () => {
@@ -89,8 +145,7 @@ describe("<ChangeRecoveryKey />", () => {
 
             const onFinish = jest.fn();
             const { asFragment } = renderComponent(false, onFinish);
-            // Display the recovery key to save
-            await waitFor(() => user.click(screen.getByRole("button", { name: "Continue" })));
+            await goToSaveRecoveryKeyPanel(user, false);
             // Display the form to confirm the recovery key
             await waitFor(() => user.click(screen.getByRole("button", { name: "Continue" })));
 
@@ -127,8 +182,7 @@ describe("<ChangeRecoveryKey />", () => {
 
             const onFinish = jest.fn();
             renderComponent(false, onFinish);
-            // Display the recovery key to save
-            await waitFor(() => user.click(screen.getByRole("button", { name: "Continue" })));
+            await goToSaveRecoveryKeyPanel(user, false);
             // Display the form to confirm the recovery key
             await waitFor(() => user.click(screen.getByRole("button", { name: "Continue" })));
 
@@ -152,8 +206,7 @@ describe("<ChangeRecoveryKey />", () => {
 
             const onFinish = jest.fn();
             renderComponent(false, onFinish);
-            // Display the recovery key to save
-            await waitFor(() => user.click(screen.getByRole("button", { name: "Continue" })));
+            await goToSaveRecoveryKeyPanel(user, false);
             // Display the form to confirm the recovery key
             await waitFor(() => user.click(screen.getByRole("button", { name: "Continue" })));
 
@@ -177,8 +230,7 @@ describe("<ChangeRecoveryKey />", () => {
             const user = userEvent.setup();
             const { getByRole, getByText, getByTitle } = renderComponent(false);
 
-            // Display the recovery key to save
-            await waitFor(() => user.click(getByRole("button", { name: "Continue" })));
+            await goToSaveRecoveryKeyPanel(user, false);
             // Display the form to confirm the recovery key
             await waitFor(() => user.click(getByRole("button", { name: "Continue" })));
 
@@ -219,8 +271,7 @@ describe("<ChangeRecoveryKey />", () => {
             const user = userEvent.setup();
             const { getByRole, getByText, getByTitle } = renderComponent(false);
 
-            // Display the recovery key to save
-            await waitFor(() => user.click(getByRole("button", { name: "Continue" })));
+            await goToSaveRecoveryKeyPanel(user, false);
             // Display the form to confirm the recovery key
             await waitFor(() => user.click(getByRole("button", { name: "Continue" })));
 
@@ -244,7 +295,10 @@ describe("<ChangeRecoveryKey />", () => {
 
     describe("flow to change the recovery key", () => {
         it("should display the recovery key", async () => {
+            const user = userEvent.setup();
             const { asFragment } = renderComponent();
+
+            await goToSaveRecoveryKeyPanel(user, true);
 
             await waitFor(() => expect(screen.getByText("Change recovery key?")).toBeInTheDocument());
             expect(screen.getByText("encoded private key")).toBeInTheDocument();

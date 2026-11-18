@@ -322,6 +322,23 @@ can point Element at your own if you prefer.
 
 More information about the Jitsi setup can be found [here](./jitsi.md).
 
+### Google Drive (recovery key backup)
+
+Optional. When configured, the recovery key setup screen shows a **Save to Google Drive** button.
+Uses Google Identity Services with the `drive.file` scope (files created by the app only).
+
+```json
+{
+    "google_drive": {
+        "client_id": "YOUR_OAUTH_CLIENT_ID.apps.googleusercontent.com"
+    }
+}
+```
+
+Create a **Web application** OAuth client in Google Cloud Console, enable the Drive API, and add your
+app origins under **Authorized JavaScript origins**. Leave `client_id` empty (or omit `google_drive`)
+to hide the button.
+
 The VoIP and Jitsi options are:
 
 1. `jitsi`: Optional configuration for how to start Jitsi conferences. Currently can only contain a single `preferred_domain`

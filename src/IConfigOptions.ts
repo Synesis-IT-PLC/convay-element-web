@@ -219,6 +219,15 @@ export interface IConfigOptions {
     };
 
     modules?: string[];
+
+    /**
+     * Optional Google Drive integration for saving recovery keys.
+     * Requires a Web application OAuth client ID from Google Cloud Console.
+     * The Drive button is hidden when client_id is omitted.
+     */
+    google_drive?: {
+        client_id: string;
+    };
 }
 
 export interface ISsoRedirectOptions {

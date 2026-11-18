@@ -47,5 +47,8 @@
     },
     "map_style_url": "https://api.maptiler.com/maps/streets/style.json?key=fU3vlMsMn4Jb6dnEIFsx",
     "jwt_validate_url": "https://convaydev1mid.convay.com:8092/services/organizationsettings/v1/authenticate/by-token",
-    "jwt_failure_redirect_url": "https://convaydev1mid.convay.com:8092"
+    "jwt_failure_redirect_url": "https://convaydev1mid.convay.com:8092",
+    "google_drive": {
+        "client_id": ""
+    }
 }

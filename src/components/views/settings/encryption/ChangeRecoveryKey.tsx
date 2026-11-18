@@ -18,9 +18,12 @@ import {
     Root,
     Text,
 } from "@vector-im/compound-web";
+import CloudIcon from "@vector-im/compound-design-tokens/assets/web/icons/cloud";
 import CopyIcon from "@vector-im/compound-design-tokens/assets/web/icons/copy";
+import DownloadIcon from "@vector-im/compound-design-tokens/assets/web/icons/download";
 import KeyIcon from "@vector-im/compound-design-tokens/assets/web/icons/key-solid";
 import { type GeneratedSecretStorageKey } from "matrix-js-sdk/src/crypto-api";
+import FileSaver from "file-saver";
 
 import { _t, _td } from "../../../../languageHandler";
 import PassphraseField from "../../auth/PassphraseField";
@@ -34,6 +37,17 @@ import { EncryptionCardButtons } from "./EncryptionCardButtons";
 import { logErrorAndShowErrorDialog } from "../../../../utils/ErrorUtils.tsx";
 import DeviceListener, { RECOVERY_ACCOUNT_DATA_KEY } from "../../../../DeviceListener";
 import { resetKeyBackupAndWait } from "../../../../utils/crypto/resetKeyBackup";
+import { getGoogleDriveClientId, saveRecoveryKeyToGoogleDrive } from "../../../../utils/googleDrive";
+
+/**
+ * Build a safe download filename for the recovery key.
+ * Example: recovery-key-alice.txt
+ */
+function getRecoveryKeyFilename(userId: string | null): string {
+    const localpart = userId?.replace(/^@/, "").split(":")[0] || "user";
+    const safeUsername = localpart.replace(/[^a-zA-Z0-9._-]/g, "_");
+    return `recovery-key-${safeUsername}.txt`;
+}
 
 /**
  * The minimum zxcvbn score required for a security phrase.
@@ -553,6 +567,42 @@ interface KeyPanelProps {
  * The panel to display the recovery key.
  */
 function KeyPanel({ recoveryKey, onConfirmClick, onCancelClick }: KeyPanelProps): JSX.Element {
+    const matrixClient = useMatrixClientContext();
+    const googleDriveClientId = getGoogleDriveClientId();
+    const [isSavingToDrive, setIsSavingToDrive] = useState(false);
+    const [driveSaveMessage, setDriveSaveMessage] = useState<{ kind: "success" | "error"; text: string } | null>(
+        null,
+    );
+
+    const filename = getRecoveryKeyFilename(matrixClient.getUserId());
+
+    const onDownloadClick = (): void => {
+        const blob = new Blob([recoveryKey], {
+            type: "text/plain;charset=us-ascii",
+        });
+        FileSaver.saveAs(blob, filename);
+    };
+
+    const onGoogleDriveClick = async (): Promise<void> => {
+        if (isSavingToDrive) return;
+        setIsSavingToDrive(true);
+        setDriveSaveMessage(null);
+        try {
+            await saveRecoveryKeyToGoogleDrive(recoveryKey, filename);
+            setDriveSaveMessage({
+                kind: "success",
+                text: _t("settings|encryption|recovery|save_key_google_drive_success"),
+            });
+        } catch {
+            setDriveSaveMessage({
+                kind: "error",
+                text: _t("settings|encryption|recovery|save_key_google_drive_error"),
+            });
+        } finally {
+            setIsSavingToDrive(false);
+        }
+    };
+
     return (
         <>
             <div className="mx_KeyPanel">
@@ -571,7 +621,35 @@ function KeyPanel({ recoveryKey, onConfirmClick, onCancelClick }: KeyPanelProps)
                     <CopyIcon />
                 </IconButton>
             </div>
+            {driveSaveMessage && (
+                <Text
+                    as="span"
+                    size="sm"
+                    data-testid="googleDriveSaveMessage"
+                    style={{
+                        color:
+                            driveSaveMessage.kind === "error"
+                                ? "var(--cpd-color-text-critical-primary)"
+                                : "var(--cpd-color-text-success-primary)",
+                    }}
+                >
+                    {driveSaveMessage.text}
+                </Text>
+            )}
             <EncryptionCardButtons>
+                {googleDriveClientId && (
+                    <Button
+                        kind="secondary"
+                        Icon={CloudIcon}
+                        disabled={isSavingToDrive}
+                        onClick={onGoogleDriveClick}
+                    >
+                        {_t("settings|encryption|recovery|save_key_google_drive")}
+                    </Button>
+                )}
+                <Button kind="secondary" Icon={DownloadIcon} onClick={onDownloadClick}>
+                    {_t("action|download")}
+                </Button>
                 <Button onClick={onConfirmClick}>{_t("action|continue")}</Button>
                 <Button kind="tertiary" onClick={onCancelClick}>
                     {_t("action|cancel")}

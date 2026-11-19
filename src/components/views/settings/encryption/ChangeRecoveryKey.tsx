@@ -37,17 +37,11 @@ import { EncryptionCardButtons } from "./EncryptionCardButtons";
 import { logErrorAndShowErrorDialog } from "../../../../utils/ErrorUtils.tsx";
 import DeviceListener, { RECOVERY_ACCOUNT_DATA_KEY } from "../../../../DeviceListener";
 import { resetKeyBackupAndWait } from "../../../../utils/crypto/resetKeyBackup";
-import { getGoogleDriveClientId, saveRecoveryKeyToGoogleDrive } from "../../../../utils/googleDrive";
-
-/**
- * Build a safe download filename for the recovery key.
- * Example: recovery-key-alice.txt
- */
-function getRecoveryKeyFilename(userId: string | null): string {
-    const localpart = userId?.replace(/^@/, "").split(":")[0] || "user";
-    const safeUsername = localpart.replace(/[^a-zA-Z0-9._-]/g, "_");
-    return `recovery-key-${safeUsername}.txt`;
-}
+import {
+    getGoogleDriveClientId,
+    getRecoveryKeyFilename,
+    saveRecoveryKeyToGoogleDrive,
+} from "../../../../utils/googleDrive";
 
 /**
  * The minimum zxcvbn score required for a security phrase.

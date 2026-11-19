@@ -28,6 +28,8 @@ import InteractiveAuthDialog from "./components/views/dialogs/InteractiveAuthDia
 let secretStorageKeys: Record<string, Uint8Array<ArrayBuffer>> = {};
 let secretStorageKeyInfo: Record<string, SecretStorage.SecretStorageKeyDescription> = {};
 let secretStorageBeingAccessed = false;
+/** One-shot recovery key supplied by callers (e.g. Google Drive restore) to skip the prompt dialog. */
+let providedRecoveryKey: string | undefined;
 
 const logger = rootLogger.getChild("SecurityManager:");
 
@@ -109,8 +111,21 @@ async function getSecretStorageKey(
         throw new Error("Request for non-default 4S key");
     }
 
-    logger.debug(`getSecretStorageKey: prompting user for key ${keyId}`);
     const inputToKey = makeInputToKey(keyInfo);
+
+    if (providedRecoveryKey) {
+        logger.debug(`getSecretStorageKey: using caller-provided recovery key for ${keyId}`);
+        const key = await inputToKey({ recoveryKey: providedRecoveryKey });
+        const isCorrect = await MatrixClientPeg.safeGet().secretStorage.checkKey(key, keyInfo);
+        if (!isCorrect) {
+            throw new Error("Incorrect recovery key");
+        }
+        cacheSecretStorageKey(keyId, keyInfo, key);
+        return [keyId, key];
+    }
+
+    logger.debug(`getSecretStorageKey: prompting user for key ${keyId}`);
+
     const { finished } = Modal.createDialog(
         AccessSecretStorageDialog,
         /* props= */
@@ -210,6 +225,23 @@ export async function accessSecretStorage(
     opts: AccessSecretStorageOpts = {},
 ): Promise<void> {
     await withSecretStorageKeyCache(() => doAccessSecretStorage(func, opts));
+}
+
+/**
+ * Like {@link accessSecretStorage}, but unlocks secret storage with a known recovery key
+ * instead of prompting the user (used for Google Drive restore).
+ */
+export async function accessSecretStorageWithRecoveryKey(
+    recoveryKey: string,
+    func = async (): Promise<void> => {},
+    opts: AccessSecretStorageOpts = {},
+): Promise<void> {
+    providedRecoveryKey = recoveryKey.trim();
+    try {
+        await accessSecretStorage(func, opts);
+    } finally {
+        providedRecoveryKey = undefined;
+    }
 }
 
 /** Helper for {@link #accessSecretStorage} */

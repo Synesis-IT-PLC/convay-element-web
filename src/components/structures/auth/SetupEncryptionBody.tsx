@@ -9,6 +9,7 @@ Please see LICENSE files in the repository root for full details.
 import React, { type JSX } from "react";
 import { type KeyBackupInfo, type VerificationRequest } from "matrix-js-sdk/src/crypto-api";
 import { logger } from "matrix-js-sdk/src/logger";
+import CloudIcon from "@vector-im/compound-design-tokens/assets/web/icons/cloud";
 import DevicesIcon from "@vector-im/compound-design-tokens/assets/web/icons/devices";
 import LockIcon from "@vector-im/compound-design-tokens/assets/web/icons/lock-solid";
 import { Button } from "@vector-im/compound-web";
@@ -29,6 +30,7 @@ import ExternalLink from "../../views/elements/ExternalLink";
 import dispatcher from "../../../dispatcher/dispatcher";
 import E2EIcon from "../../views/rooms/E2EIcon.tsx";
 import { E2EStatus } from "../../../utils/ShieldUtils.ts";
+import { getGoogleDriveClientId } from "../../../utils/googleDrive";
 
 interface IProps {
     onFinished: () => void;
@@ -48,6 +50,7 @@ interface IState {
     phase?: Phase;
     verificationRequest: VerificationRequest | null;
     backupInfo: KeyBackupInfo | null;
+    googleDriveError: string | null;
 }
 
 /**
@@ -65,6 +68,7 @@ export default class SetupEncryptionBody extends React.Component<IProps, IState>
             // Because of the latter, it lives in the state.
             verificationRequest: store.verificationRequest,
             backupInfo: store.backupInfo,
+            googleDriveError: store.googleDriveError,
         };
     }
 
@@ -83,6 +87,7 @@ export default class SetupEncryptionBody extends React.Component<IProps, IState>
             phase: store.phase,
             verificationRequest: store.verificationRequest,
             backupInfo: store.backupInfo,
+            googleDriveError: store.googleDriveError,
         });
     };
 
@@ -95,6 +100,11 @@ export default class SetupEncryptionBody extends React.Component<IProps, IState>
     private onUsePassphraseClick = async (): Promise<void> => {
         const store = SetupEncryptionStore.sharedInstance();
         store.usePassPhrase();
+    };
+
+    private onRestoreFromGoogleDriveClick = async (): Promise<void> => {
+        const store = SetupEncryptionStore.sharedInstance();
+        await store.useGoogleDriveRecoveryKey();
     };
 
     private onVerifyClick = (): void => {
@@ -190,12 +200,36 @@ export default class SetupEncryptionBody extends React.Component<IProps, IState>
                 );
             }
 
+            let restoreFromGoogleDriveButton;
+            if (store.keyInfo && getGoogleDriveClientId()) {
+                restoreFromGoogleDriveButton = (
+                    <Button kind="secondary" onClick={this.onRestoreFromGoogleDriveClick}>
+                        <CloudIcon /> {_t("encryption|verification|restore_from_google_drive")}
+                    </Button>
+                );
+            }
+
             let signOutButton;
             if (this.props.allowLogout) {
                 signOutButton = (
                     <Button kind="tertiary" onClick={this.onSignOutClick}>
                         {_t("action|sign_out")}
                     </Button>
+                );
+            }
+
+            let googleDriveError: React.ReactNode;
+            if (this.state.googleDriveError === "not_found") {
+                googleDriveError = (
+                    <p className="mx_SetupEncryptionBody_error" role="alert">
+                        {_t("encryption|verification|restore_from_google_drive_not_found")}
+                    </p>
+                );
+            } else if (this.state.googleDriveError === "failed") {
+                googleDriveError = (
+                    <p className="mx_SetupEncryptionBody_error" role="alert">
+                        {_t("encryption|verification|restore_from_google_drive_error")}
+                    </p>
                 );
             }
 
@@ -218,9 +252,11 @@ export default class SetupEncryptionBody extends React.Component<IProps, IState>
                             {_t("encryption|verification|verification_failed_session_not_signed")}
                         </p>
                     )}
+                    {googleDriveError}
                     <EncryptionCardButtons>
                         {verifyButton}
                         {useRecoveryKeyButton}
+                        {restoreFromGoogleDriveButton}
                         <Button kind="secondary" onClick={this.onCantConfirmClick}>
                             {_t("encryption|verification|cant_confirm")}
                         </Button>

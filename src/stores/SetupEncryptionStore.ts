@@ -18,9 +18,18 @@ import { logger } from "matrix-js-sdk/src/logger";
 import { type Device, type SecretStorage } from "matrix-js-sdk/src/matrix";
 
 import { MatrixClientPeg } from "../MatrixClientPeg";
-import { AccessCancelledError, accessSecretStorage } from "../SecurityManager";
+import {
+    AccessCancelledError,
+    accessSecretStorage,
+    accessSecretStorageWithRecoveryKey,
+} from "../SecurityManager";
 import { asyncSome } from "../utils/arrays";
 import { initialiseDehydrationIfEnabled } from "../utils/device/dehydration";
+import {
+    getRecoveryKeyFilename,
+    GoogleDriveRecoveryKeyNotFoundError,
+    restoreRecoveryKeyFromGoogleDrive,
+} from "../utils/googleDrive";
 
 // How long to wait for the server to confirm the signature on this session after unlocking secret storage
 const DEVICE_SIGNATURE_TIMEOUT_MS = 20000;
@@ -52,6 +61,8 @@ export class SetupEncryptionStore extends EventEmitter {
     public hasDevicesToVerifyAgainst?: boolean;
     // Set when the recovery key/phrase was accepted but this session did not end up cross-signed
     public deviceNotSigned = false;
+    /** User-visible error from a Google Drive restore attempt, if any. */
+    public googleDriveError: string | null = null;
     private usingPassPhrase = false;
 
     public static sharedInstance(): SetupEncryptionStore {
@@ -131,10 +142,59 @@ export class SetupEncryptionStore extends EventEmitter {
 
     public async usePassPhrase(): Promise<void> {
         logger.debug("SetupEncryptionStore.usePassphrase");
+        await this.unlockSecretStorageAndFinish((fn) => accessSecretStorage(fn));
+    }
+
+    /**
+     * Restore the recovery key from Google Drive and unlock secret storage with it
+     * (no manual key entry dialog).
+     */
+    public async useGoogleDriveRecoveryKey(): Promise<void> {
+        logger.debug("SetupEncryptionStore.useGoogleDriveRecoveryKey");
         this.phase = Phase.Busy;
         this.deviceNotSigned = false;
+        this.googleDriveError = null;
         this.usingPassPhrase = true;
         this.emit("update");
+
+        try {
+            const cli = MatrixClientPeg.safeGet();
+            const filename = getRecoveryKeyFilename(cli.getUserId());
+            const recoveryKey = await restoreRecoveryKeyFromGoogleDrive(filename);
+            await this.unlockSecretStorageAndFinish((fn) => accessSecretStorageWithRecoveryKey(recoveryKey, fn), {
+                alreadyBusy: true,
+            });
+        } catch (e) {
+            if (e instanceof GoogleDriveRecoveryKeyNotFoundError) {
+                this.googleDriveError = "not_found";
+            } else if (!(e instanceof AccessCancelledError)) {
+                logger.log("SetupEncryptionStore.useGoogleDriveRecoveryKey: error", e);
+                this.googleDriveError = "failed";
+            } else {
+                logger.debug("SetupEncryptionStore.useGoogleDriveRecoveryKey: user cancelled");
+            }
+            this.phase = Phase.Intro;
+            this.emit("update");
+        } finally {
+            this.usingPassPhrase = false;
+        }
+    }
+
+    /**
+     * Shared path for unlocking 4S (manual prompt or provided recovery key) and finishing setup.
+     */
+    private async unlockSecretStorageAndFinish(
+        access: (fn: () => Promise<void>) => Promise<void>,
+        opts: { alreadyBusy?: boolean } = {},
+    ): Promise<void> {
+        if (!opts.alreadyBusy) {
+            this.phase = Phase.Busy;
+            this.deviceNotSigned = false;
+            this.googleDriveError = null;
+            this.usingPassPhrase = true;
+            this.emit("update");
+        }
+
         try {
             const cli = MatrixClientPeg.safeGet();
             const backupInfo = (await cli.getCrypto()?.getKeyBackupInfo()) ?? null;
@@ -142,8 +202,8 @@ export class SetupEncryptionStore extends EventEmitter {
             this.emit("update");
 
             await new Promise((resolve: (value?: unknown) => void, reject: (reason?: any) => void) => {
-                accessSecretStorage(async (): Promise<void> => {
-                    // `accessSecretStorage` will call `boostrapCrossSigning` and `bootstrapSecretStorage`, so that
+                access(async (): Promise<void> => {
+                    // `accessSecretStorage` will call `bootstrapCrossSigning` and `bootstrapSecretStorage`, so that
                     // should be enough to ensure that our device is correctly cross-signed.
                     //
                     // The remaining tasks (device dehydration and restoring key backup) may take some time due to
@@ -152,7 +212,7 @@ export class SetupEncryptionStore extends EventEmitter {
                     //
                     // However, we need to keep the 4S key cached, so we stay inside `accessSecretStorage`.
                     logger.debug(
-                        "SetupEncryptionStore.usePassphrase: cross-signing and secret storage set up; checking " +
+                        "SetupEncryptionStore.unlockSecretStorageAndFinish: cross-signing and secret storage set up; checking " +
                             "dehydration and backup in the background",
                     );
                     resolve();
@@ -167,11 +227,12 @@ export class SetupEncryptionStore extends EventEmitter {
             });
 
             if (await this.waitForThisDeviceSigned()) {
-                logger.debug("SetupEncryptionStore.usePassphrase: done");
+                logger.debug("SetupEncryptionStore.unlockSecretStorageAndFinish: done");
+                this.googleDriveError = null;
                 this.phase = Phase.Done;
             } else {
                 logger.error(
-                    "SetupEncryptionStore.usePassphrase: secret storage unlocked, but this session is not " +
+                    "SetupEncryptionStore.unlockSecretStorageAndFinish: secret storage unlocked, but this session is not " +
                         "cross-signed. Check that /keys/signatures/upload succeeded.",
                 );
                 this.deviceNotSigned = true;
@@ -180,15 +241,21 @@ export class SetupEncryptionStore extends EventEmitter {
             this.emit("update");
         } catch (e) {
             if (e instanceof AccessCancelledError) {
-                logger.debug("SetupEncryptionStore.usePassphrase: user cancelled access to secret storage");
+                logger.debug("SetupEncryptionStore.unlockSecretStorageAndFinish: user cancelled access to secret storage");
             } else {
-                logger.log("SetupEncryptionStore.usePassphrase: error", e);
+                logger.log("SetupEncryptionStore.unlockSecretStorageAndFinish: error", e);
+                // Incorrect key from Drive should surface as a Drive restore failure.
+                if (opts.alreadyBusy) {
+                    throw e;
+                }
             }
 
             this.phase = Phase.Intro;
             this.emit("update");
         } finally {
-            this.usingPassPhrase = false;
+            if (!opts.alreadyBusy) {
+                this.usingPassPhrase = false;
+            }
         }
     }
 

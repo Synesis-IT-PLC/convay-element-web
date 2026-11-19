@@ -35,7 +35,12 @@ jest.mock("file-saver", () => ({
 
 jest.mock("../../../../../../src/utils/googleDrive", () => ({
     getGoogleDriveClientId: jest.fn(),
+    getRecoveryKeyFilename: jest.fn((userId: string | null) => {
+        const localpart = userId?.replace(/^@/, "").split(":")[0] || "user";
+        return `recovery-key-${localpart}.txt`;
+    }),
     saveRecoveryKeyToGoogleDrive: jest.fn(),
+    restoreRecoveryKeyFromGoogleDrive: jest.fn(),
 }));
 
 afterEach(() => {

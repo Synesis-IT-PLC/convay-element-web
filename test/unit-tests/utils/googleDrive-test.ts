@@ -6,7 +6,13 @@
  */
 
 import SdkConfig from "../../../src/SdkConfig";
-import { getGoogleDriveClientId, saveRecoveryKeyToGoogleDrive } from "../../../src/utils/googleDrive";
+import {
+    getGoogleDriveClientId,
+    getRecoveryKeyFilename,
+    GoogleDriveRecoveryKeyNotFoundError,
+    restoreRecoveryKeyFromGoogleDrive,
+    saveRecoveryKeyToGoogleDrive,
+} from "../../../src/utils/googleDrive";
 
 describe("googleDrive", () => {
     beforeEach(() => {
@@ -83,6 +89,89 @@ describe("googleDrive", () => {
                     headers: { Authorization: "Bearer token-123" },
                     body: expect.any(FormData),
                 }),
+            );
+
+            fetchSpy.mockRestore();
+        });
+    });
+
+    describe("getRecoveryKeyFilename", () => {
+        it("uses the matrix localpart", () => {
+            expect(getRecoveryKeyFilename("@alice:example.com")).toBe("recovery-key-alice.txt");
+        });
+    });
+
+    describe("restoreRecoveryKeyFromGoogleDrive", () => {
+        function mockGoogleAuth(): void {
+            const requestAccessToken = jest.fn();
+            (window as any).google = {
+                accounts: {
+                    oauth2: {
+                        initTokenClient: jest.fn(({ callback }) => {
+                            requestAccessToken.mockImplementation(() => {
+                                callback({ access_token: "token-123" });
+                            });
+                            return { requestAccessToken };
+                        }),
+                    },
+                },
+            };
+        }
+
+        it("downloads the newest matching recovery key file", async () => {
+            SdkConfig.put({
+                brand: "Test",
+                google_drive: { client_id: "client-id.apps.googleusercontent.com" },
+            } as any);
+            mockGoogleAuth();
+
+            const fetchSpy = jest
+                .spyOn(global, "fetch")
+                .mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ files: [{ id: "file-1" }] }),
+                } as Response)
+                .mockResolvedValueOnce({
+                    ok: true,
+                    text: async () => "  encoded private key  ",
+                } as Response);
+
+            await expect(restoreRecoveryKeyFromGoogleDrive("recovery-key-userId.txt")).resolves.toBe(
+                "encoded private key",
+            );
+
+            expect(fetchSpy).toHaveBeenNthCalledWith(
+                1,
+                expect.stringContaining("https://www.googleapis.com/drive/v3/files?"),
+                expect.objectContaining({
+                    headers: { Authorization: "Bearer token-123" },
+                }),
+            );
+            expect(fetchSpy).toHaveBeenNthCalledWith(
+                2,
+                "https://www.googleapis.com/drive/v3/files/file-1?alt=media",
+                expect.objectContaining({
+                    headers: { Authorization: "Bearer token-123" },
+                }),
+            );
+
+            fetchSpy.mockRestore();
+        });
+
+        it("throws when no recovery key file is found", async () => {
+            SdkConfig.put({
+                brand: "Test",
+                google_drive: { client_id: "client-id.apps.googleusercontent.com" },
+            } as any);
+            mockGoogleAuth();
+
+            const fetchSpy = jest.spyOn(global, "fetch").mockResolvedValue({
+                ok: true,
+                json: async () => ({ files: [] }),
+            } as Response);
+
+            await expect(restoreRecoveryKeyFromGoogleDrive("recovery-key-userId.txt")).rejects.toBeInstanceOf(
+                GoogleDriveRecoveryKeyNotFoundError,
             );
 
             fetchSpy.mockRestore();

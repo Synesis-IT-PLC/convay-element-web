@@ -17,6 +17,8 @@ import { emitPromise, stubClient } from "../../test-utils";
 
 jest.mock("../../../src/SecurityManager", () => ({
     accessSecretStorage: jest.fn(),
+    accessSecretStorageWithRecoveryKey: jest.fn(),
+    AccessCancelledError: class AccessCancelledError extends Error {},
 }));
 
 describe("SetupEncryptionStore", () => {

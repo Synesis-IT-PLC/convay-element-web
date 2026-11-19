@@ -12,6 +12,7 @@ import SdkConfig from "../SdkConfig";
 const GIS_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
 const DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const DRIVE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
+const DRIVE_FILES_URL = "https://www.googleapis.com/drive/v3/files";
 
 type TokenClient = {
     requestAccessToken: (overrideConfig?: { prompt?: string }) => void;
@@ -41,6 +42,23 @@ declare global {
 }
 
 let gisScriptPromise: Promise<void> | null = null;
+
+export class GoogleDriveRecoveryKeyNotFoundError extends Error {
+    public constructor() {
+        super("No recovery key file found in Google Drive");
+        this.name = "GoogleDriveRecoveryKeyNotFoundError";
+    }
+}
+
+/**
+ * Build a safe download/upload filename for the recovery key.
+ * Example: recovery-key-alice.txt
+ */
+export function getRecoveryKeyFilename(userId: string | null): string {
+    const localpart = userId?.replace(/^@/, "").split(":")[0] || "user";
+    const safeUsername = localpart.replace(/[^a-zA-Z0-9._-]/g, "_");
+    return `recovery-key-${safeUsername}.txt`;
+}
 
 /**
  * Returns the configured Google OAuth client ID, or undefined if Drive save is not configured.
@@ -112,6 +130,16 @@ function requestAccessToken(clientId: string): Promise<string> {
     });
 }
 
+async function ensureAccessToken(): Promise<string> {
+    const clientId = getGoogleDriveClientId();
+    if (!clientId) {
+        throw new Error("Google Drive is not configured");
+    }
+
+    await loadGoogleIdentityServices();
+    return requestAccessToken(clientId);
+}
+
 async function uploadTextFile(accessToken: string, filename: string, content: string): Promise<void> {
     const metadata = {
         name: filename,
@@ -137,16 +165,71 @@ async function uploadTextFile(accessToken: string, filename: string, content: st
     }
 }
 
+async function findRecoveryKeyFileId(accessToken: string, filename: string): Promise<string> {
+    // Escape single quotes in the Drive query language.
+    const safeName = filename.replace(/'/g, "\\'");
+    const query = `name='${safeName}' and trashed=false`;
+    const params = new URLSearchParams({
+        q: query,
+        spaces: "drive",
+        fields: "files(id,name,modifiedTime)",
+        orderBy: "modifiedTime desc",
+        pageSize: "1",
+    });
+
+    const response = await fetch(`${DRIVE_FILES_URL}?${params.toString()}`, {
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+        },
+    });
+
+    if (!response.ok) {
+        const body = await response.text().catch(() => "");
+        logger.error("Google Drive file list failed", response.status, body);
+        throw new Error("Failed to search Google Drive for recovery key");
+    }
+
+    const data = (await response.json()) as { files?: Array<{ id: string }> };
+    const fileId = data.files?.[0]?.id;
+    if (!fileId) {
+        throw new GoogleDriveRecoveryKeyNotFoundError();
+    }
+    return fileId;
+}
+
+async function downloadTextFile(accessToken: string, fileId: string): Promise<string> {
+    const response = await fetch(`${DRIVE_FILES_URL}/${encodeURIComponent(fileId)}?alt=media`, {
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+        },
+    });
+
+    if (!response.ok) {
+        const body = await response.text().catch(() => "");
+        logger.error("Google Drive download failed", response.status, body);
+        throw new Error("Failed to download recovery key from Google Drive");
+    }
+
+    return (await response.text()).trim();
+}
+
 /**
  * Authenticate with Google (drive.file scope) and upload the recovery key as a text file.
  */
 export async function saveRecoveryKeyToGoogleDrive(recoveryKey: string, filename: string): Promise<void> {
-    const clientId = getGoogleDriveClientId();
-    if (!clientId) {
-        throw new Error("Google Drive is not configured");
-    }
-
-    await loadGoogleIdentityServices();
-    const accessToken = await requestAccessToken(clientId);
+    const accessToken = await ensureAccessToken();
     await uploadTextFile(accessToken, filename, recoveryKey);
+}
+
+/**
+ * Authenticate with Google and download the recovery key previously saved by this app.
+ */
+export async function restoreRecoveryKeyFromGoogleDrive(filename: string): Promise<string> {
+    const accessToken = await ensureAccessToken();
+    const fileId = await findRecoveryKeyFileId(accessToken, filename);
+    const recoveryKey = await downloadTextFile(accessToken, fileId);
+    if (!recoveryKey) {
+        throw new Error("Recovery key file from Google Drive was empty");
+    }
+    return recoveryKey;
 }

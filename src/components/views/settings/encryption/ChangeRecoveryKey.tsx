@@ -40,6 +40,8 @@ import { resetKeyBackupAndWait } from "../../../../utils/crypto/resetKeyBackup";
 import {
     getGoogleDriveClientId,
     getRecoveryKeyFilename,
+    GoogleDriveRecoveryKeyNotFoundError,
+    restoreRecoveryKeyFromGoogleDrive,
     saveRecoveryKeyToGoogleDrive,
 } from "../../../../utils/googleDrive";
 import LabelledCheckbox from "../../elements/LabelledCheckbox";
@@ -698,10 +700,38 @@ interface KeyFormProps {
  * The entered key is valid if it matches the recovery key.
  */
 function KeyForm({ onCancelClick, onSubmit, recoveryKey, submitButtonLabel }: KeyFormProps): JSX.Element {
+    const matrixClient = useMatrixClientContext();
+    const googleDriveClientId = getGoogleDriveClientId();
     // Undefined by default, as the key is not filled yet
     const [isKeyValid, setIsKeyValid] = useState<boolean>();
-    const [isKeyChangeInProgress, setIsKeyChangeInProgress] = useState<boolean>(false);
+    const [filledKey, setFilledKey] = useState("");
+    const [isKeyChangeInProgress, setIsKeyChangeInProgress] = useState(false);
+    const [isRestoringFromDrive, setIsRestoringFromDrive] = useState(false);
+    const [driveRestoreError, setDriveRestoreError] = useState<"not_found" | "failed" | null>(null);
     const isKeyInvalidAndFilled = isKeyValid === false;
+
+    const updateFilledKey = (value: string): void => {
+        const trimmed = value.trim();
+        setFilledKey(value);
+        setDriveRestoreError(null);
+        setIsKeyValid(trimmed === "" ? undefined : trimmed === recoveryKey);
+    };
+
+    const onRestoreFromGoogleDriveClick = async (): Promise<void> => {
+        if (isRestoringFromDrive) return;
+        setIsRestoringFromDrive(true);
+        setDriveRestoreError(null);
+        try {
+            const keyFromDrive = await restoreRecoveryKeyFromGoogleDrive(
+                getRecoveryKeyFilename(matrixClient.getUserId()),
+            );
+            updateFilledKey(keyFromDrive);
+        } catch (e) {
+            setDriveRestoreError(e instanceof GoogleDriveRecoveryKeyNotFoundError ? "not_found" : "failed");
+        } finally {
+            setIsRestoringFromDrive(false);
+        }
+    };
 
     return (
         <Root
@@ -722,8 +752,8 @@ function KeyForm({ onCancelClick, onSubmit, recoveryKey, submitButtonLabel }: Ke
                 evt.stopPropagation();
 
                 // We don't have any file in the form, we can cast it as string safely
-                const filledKey = new FormData(evt.currentTarget).get("recoveryKey") as string | "";
-                setIsKeyValid(filledKey.trim() === recoveryKey);
+                const nextKey = new FormData(evt.currentTarget).get("recoveryKey") as string | "";
+                updateFilledKey(nextKey);
             }}
         >
             <Field name="recoveryKey" serverInvalid={isKeyInvalidAndFilled}>
@@ -733,12 +763,31 @@ function KeyForm({ onCancelClick, onSubmit, recoveryKey, submitButtonLabel }: Ke
                     required={true}
                     title={_t("settings|encryption|recovery|enter_recovery_key")}
                     className="mx_KeyForm_password mx_no_textinput"
+                    value={filledKey}
+                    onChange={(evt) => updateFilledKey(evt.target.value)}
                 />
                 {isKeyInvalidAndFilled && (
                     <ErrorMessage>{_t("settings|encryption|recovery|enter_key_error")}</ErrorMessage>
                 )}
             </Field>
+            {driveRestoreError === "not_found" && (
+                <ErrorMessage>{_t("encryption|verification|restore_from_google_drive_not_found")}</ErrorMessage>
+            )}
+            {driveRestoreError === "failed" && (
+                <ErrorMessage>{_t("encryption|verification|restore_from_google_drive_error")}</ErrorMessage>
+            )}
             <EncryptionCardButtons>
+                {googleDriveClientId && (
+                    <Button
+                        type="button"
+                        kind="secondary"
+                        Icon={CloudIcon}
+                        disabled={isRestoringFromDrive || isKeyChangeInProgress}
+                        onClick={onRestoreFromGoogleDriveClick}
+                    >
+                        {_t("encryption|verification|restore_from_google_drive")}
+                    </Button>
+                )}
                 <Button disabled={!isKeyValid || isKeyChangeInProgress}>{submitButtonLabel}</Button>
                 <Button kind="tertiary" onClick={onCancelClick}>
                     {_t("action|cancel")}

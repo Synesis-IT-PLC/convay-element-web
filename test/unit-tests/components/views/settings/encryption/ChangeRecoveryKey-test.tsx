@@ -18,6 +18,7 @@ import { createTestClient, withClientContextRenderOptions } from "../../../../..
 import { copyPlaintext } from "../../../../../../src/utils/strings";
 import Modal from "../../../../../../src/Modal";
 import ErrorDialog from "../../../../../../src/components/views/dialogs/ErrorDialog";
+import InfoDialog from "../../../../../../src/components/views/dialogs/InfoDialog";
 import DeviceListener from "../../../../../../src/DeviceListener";
 import {
     getGoogleDriveClientId,
@@ -79,6 +80,15 @@ describe("<ChangeRecoveryKey />", () => {
         await waitFor(() => expect(screen.getByText("encoded private key")).toBeInTheDocument());
     }
 
+    /** Acknowledge the save checkbox and continue to the confirm-key step. */
+    async function acknowledgeSaveAndContinue(user: ReturnType<typeof userEvent.setup>): Promise<void> {
+        const continueButton = screen.getByRole("button", { name: "Continue" });
+        expect(continueButton).toHaveAttribute("aria-disabled", "true");
+        await user.click(screen.getByRole("checkbox", { name: "I have saved my recovery key somewhere safe" }));
+        await waitFor(() => expect(continueButton).not.toHaveAttribute("aria-disabled", "true"));
+        await user.click(continueButton);
+    }
+
     describe("flow to set up a recovery key", () => {
         it("should display information about the recovery key", async () => {
             const user = userEvent.setup();
@@ -120,6 +130,12 @@ describe("<ChangeRecoveryKey />", () => {
             // Google Drive is hidden when not configured
             expect(screen.queryByRole("button", { name: "Save to Google Drive" })).not.toBeInTheDocument();
 
+            // Continue stays disabled until the acknowledgement checkbox is checked
+            expect(screen.getByRole("button", { name: "Continue" })).toHaveAttribute("aria-disabled", "true");
+            expect(
+                screen.getByRole("checkbox", { name: "I have saved my recovery key somewhere safe" }),
+            ).toBeInTheDocument();
+
             await user.click(screen.getByRole("button", { name: "Cancel" }));
             expect(onCancelClick).toHaveBeenCalled();
         });
@@ -151,8 +167,7 @@ describe("<ChangeRecoveryKey />", () => {
             const onFinish = jest.fn();
             const { asFragment } = renderComponent(false, onFinish);
             await goToSaveRecoveryKeyPanel(user, false);
-            // Display the form to confirm the recovery key
-            await waitFor(() => user.click(screen.getByRole("button", { name: "Continue" })));
+            await acknowledgeSaveAndContinue(user);
 
             await waitFor(() => expect(screen.getByText("Enter your recovery key to confirm")).toBeInTheDocument());
             expect(asFragment()).toMatchSnapshot();
@@ -175,9 +190,22 @@ describe("<ChangeRecoveryKey />", () => {
             await userEvent.type(input, "encoded private key");
             await waitFor(() => expect(finishButton).not.toHaveAttribute("aria-disabled", "true"));
 
+            const createDialogSpy = jest.spyOn(Modal, "createDialog").mockReturnValue({
+                finished: Promise.resolve([]),
+                close: jest.fn(),
+            } as any);
             await user.click(finishButton);
-            expect(setAccountDataSpy).toHaveBeenCalledWith("io.element.recovery", { enabled: true });
-            expect(onFinish).toHaveBeenCalledWith();
+            await waitFor(() => {
+                expect(setAccountDataSpy).toHaveBeenCalledWith("io.element.recovery", { enabled: true });
+                expect(onFinish).toHaveBeenCalledWith();
+                expect(createDialogSpy).toHaveBeenCalledWith(
+                    InfoDialog,
+                    expect.objectContaining({
+                        title: "Recovery key set up",
+                        description: expect.any(String),
+                    }),
+                );
+            });
         });
 
         it("should reset key backup if needed", async () => {
@@ -188,8 +216,7 @@ describe("<ChangeRecoveryKey />", () => {
             const onFinish = jest.fn();
             renderComponent(false, onFinish);
             await goToSaveRecoveryKeyPanel(user, false);
-            // Display the form to confirm the recovery key
-            await waitFor(() => user.click(screen.getByRole("button", { name: "Continue" })));
+            await acknowledgeSaveAndContinue(user);
 
             await waitFor(() => expect(screen.getByText("Enter your recovery key to confirm")).toBeInTheDocument());
 
@@ -201,7 +228,7 @@ describe("<ChangeRecoveryKey />", () => {
             await userEvent.type(input, "encoded private key");
 
             await user.click(finishButton);
-            expect(matrixClient.getCrypto()!.resetKeyBackup).toHaveBeenCalled();
+            await waitFor(() => expect(matrixClient.getCrypto()!.resetKeyBackup).toHaveBeenCalled());
         });
 
         it("should not reset key backup if not needed", async () => {
@@ -212,8 +239,7 @@ describe("<ChangeRecoveryKey />", () => {
             const onFinish = jest.fn();
             renderComponent(false, onFinish);
             await goToSaveRecoveryKeyPanel(user, false);
-            // Display the form to confirm the recovery key
-            await waitFor(() => user.click(screen.getByRole("button", { name: "Continue" })));
+            await acknowledgeSaveAndContinue(user);
 
             await waitFor(() => expect(screen.getByText("Enter your recovery key to confirm")).toBeInTheDocument());
 
@@ -236,8 +262,7 @@ describe("<ChangeRecoveryKey />", () => {
             const { getByRole, getByText, getByTitle } = renderComponent(false);
 
             await goToSaveRecoveryKeyPanel(user, false);
-            // Display the form to confirm the recovery key
-            await waitFor(() => user.click(getByRole("button", { name: "Continue" })));
+            await acknowledgeSaveAndContinue(user);
 
             await waitFor(() => expect(getByText("Enter your recovery key to confirm")).toBeInTheDocument());
 
@@ -249,14 +274,16 @@ describe("<ChangeRecoveryKey />", () => {
                 expect(finishButton).not.toBeDisabled();
             });
 
-            jest.spyOn(Modal, "createDialog");
+            const createDialogSpy = jest.spyOn(Modal, "createDialog");
 
             await user.click(finishButton);
 
-            expect(Modal.createDialog).toHaveBeenCalledWith(ErrorDialog, {
-                title: "Failed to set up secret storage",
-                description: "Error: can't bootstrap",
-            });
+            await waitFor(() =>
+                expect(createDialogSpy).toHaveBeenCalledWith(ErrorDialog, {
+                    title: "Failed to set up secret storage",
+                    description: "Error: can't bootstrap",
+                }),
+            );
             await waitFor(() => user.click(getByRole("button", { name: "OK" })));
 
             expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -277,8 +304,7 @@ describe("<ChangeRecoveryKey />", () => {
             const { getByRole, getByText, getByTitle } = renderComponent(false);
 
             await goToSaveRecoveryKeyPanel(user, false);
-            // Display the form to confirm the recovery key
-            await waitFor(() => user.click(getByRole("button", { name: "Continue" })));
+            await acknowledgeSaveAndContinue(user);
 
             await waitFor(() => expect(getByText("Enter your recovery key to confirm")).toBeInTheDocument());
 

@@ -42,6 +42,9 @@ import {
     getRecoveryKeyFilename,
     saveRecoveryKeyToGoogleDrive,
 } from "../../../../utils/googleDrive";
+import LabelledCheckbox from "../../elements/LabelledCheckbox";
+import Modal from "../../../../Modal";
+import InfoDialog from "../../dialogs/InfoDialog";
 
 /**
  * The minimum zxcvbn score required for a security phrase.
@@ -138,6 +141,15 @@ export function ChangeRecoveryKey({
             await matrixClient.setAccountData(RECOVERY_ACCOUNT_DATA_KEY, { enabled: true });
 
             onFinish();
+            Modal.createDialog(InfoDialog, {
+                title: userHasRecoveryKey
+                    ? _t("settings|encryption|recovery|change_recovery_success_title")
+                    : _t("settings|encryption|recovery|set_up_recovery_success_title"),
+                description: userHasRecoveryKey
+                    ? _t("settings|encryption|recovery|change_recovery_success_description")
+                    : _t("settings|encryption|recovery|set_up_recovery_success_description"),
+                hasCloseButton: true,
+            });
         } catch (e) {
             logErrorAndShowErrorDialog("Failed to set up secret storage", e);
         }
@@ -564,6 +576,7 @@ function KeyPanel({ recoveryKey, onConfirmClick, onCancelClick }: KeyPanelProps)
     const matrixClient = useMatrixClientContext();
     const googleDriveClientId = getGoogleDriveClientId();
     const [isSavingToDrive, setIsSavingToDrive] = useState(false);
+    const [hasAcknowledgedSave, setHasAcknowledgedSave] = useState(false);
     const [driveSaveMessage, setDriveSaveMessage] = useState<{ kind: "success" | "error"; text: string } | null>(
         null,
     );
@@ -618,14 +631,14 @@ function KeyPanel({ recoveryKey, onConfirmClick, onCancelClick }: KeyPanelProps)
             {driveSaveMessage && (
                 <Text
                     as="span"
-                    size="sm"
+                    size="md"
+                    weight="semibold"
+                    className={
+                        driveSaveMessage.kind === "error"
+                            ? "mx_KeyPanel_driveMessage_error"
+                            : "mx_KeyPanel_driveMessage_success"
+                    }
                     data-testid="googleDriveSaveMessage"
-                    style={{
-                        color:
-                            driveSaveMessage.kind === "error"
-                                ? "var(--cpd-color-text-critical-primary)"
-                                : "var(--cpd-color-text-success-primary)",
-                    }}
                 >
                     {driveSaveMessage.text}
                 </Text>
@@ -644,7 +657,14 @@ function KeyPanel({ recoveryKey, onConfirmClick, onCancelClick }: KeyPanelProps)
                 <Button kind="secondary" Icon={DownloadIcon} onClick={onDownloadClick}>
                     {_t("action|download")}
                 </Button>
-                <Button onClick={onConfirmClick}>{_t("action|continue")}</Button>
+                <LabelledCheckbox
+                    value={hasAcknowledgedSave}
+                    label={_t("settings|encryption|recovery|save_key_acknowledgement")}
+                    onChange={setHasAcknowledgedSave}
+                />
+                <Button disabled={!hasAcknowledgedSave} onClick={onConfirmClick}>
+                    {_t("action|continue")}
+                </Button>
                 <Button kind="tertiary" onClick={onCancelClick}>
                     {_t("action|cancel")}
                 </Button>

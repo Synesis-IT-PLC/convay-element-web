@@ -22,6 +22,7 @@ import InfoDialog from "../../../../../../src/components/views/dialogs/InfoDialo
 import DeviceListener from "../../../../../../src/DeviceListener";
 import {
     getGoogleDriveClientId,
+    restoreRecoveryKeyFromGoogleDrive,
     saveRecoveryKeyToGoogleDrive,
 } from "../../../../../../src/utils/googleDrive";
 
@@ -55,6 +56,7 @@ describe("<ChangeRecoveryKey />", () => {
         matrixClient = createTestClient();
         mocked(getGoogleDriveClientId).mockReturnValue(undefined);
         mocked(saveRecoveryKeyToGoogleDrive).mockReset();
+        mocked(restoreRecoveryKeyFromGoogleDrive).mockReset();
     });
 
     function renderComponent(userHasRecoveryKey = true, onFinish = jest.fn(), onCancelClick = jest.fn()) {
@@ -157,6 +159,29 @@ describe("<ChangeRecoveryKey />", () => {
                 ),
             );
             expect(screen.getByText("Recovery key saved to Google Drive")).toBeInTheDocument();
+        });
+
+        it("should fill the confirm form from Google Drive", async () => {
+            mocked(getGoogleDriveClientId).mockReturnValue("test-client-id.apps.googleusercontent.com");
+            mocked(restoreRecoveryKeyFromGoogleDrive).mockResolvedValue("encoded private key");
+
+            const user = userEvent.setup();
+            renderComponent(false);
+            await goToSaveRecoveryKeyPanel(user, false);
+            await acknowledgeSaveAndContinue(user);
+
+            await waitFor(() => expect(screen.getByText("Enter your recovery key to confirm")).toBeInTheDocument());
+
+            const finishButton = screen.getByRole("button", { name: "Finish set up" });
+            expect(finishButton).toHaveAttribute("aria-disabled", "true");
+
+            await user.click(screen.getByRole("button", { name: "Restore from Google Drive" }));
+
+            await waitFor(() => {
+                expect(restoreRecoveryKeyFromGoogleDrive).toHaveBeenCalledWith("recovery-key-userId.txt");
+                expect(screen.getByTitle("Enter recovery key")).toHaveValue("encoded private key");
+                expect(finishButton).not.toHaveAttribute("aria-disabled", "true");
+            });
         });
 
         it("should ask the user to enter the recovery key", async () => {
